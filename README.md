@@ -46,19 +46,19 @@ The application follows a decoupled client-server architecture with heavy relian
 
 ```mermaid
 graph TD
-    Client[📱 Mobile PWA / Frontend]
-    Backend[⚙️ FastAPI Backend]
+    Client["📱 Mobile PWA / Frontend"]
+    Backend["⚙️ FastAPI Backend"]
     
     subgraph "Local AI Services"
-        Whisper[🎙️ Whisper Small (Speech-to-Text)]
-        MobileNet[🌿 MobileNetV3 (Disease Scan)]
-        BGE[🔍 BGE-small-v1.5 (Semantic Retrieval)]
+        Whisper["🎙️ Whisper Small (Speech-to-Text)"]
+        MobileNet["🌿 MobileNetV3 (Disease Scan)"]
+        BGE["🔍 BGE-small-v1.5 (Semantic Retrieval)"]
     end
     
     subgraph "External Cloud APIs"
-        Gemma[🧠 Gemma 4 (Gemini API)]
-        Weather[🌦️ Open-Meteo]
-        Soil[🌱 SoilGrids]
+        Gemma["🧠 Gemma 4 (Gemini API)"]
+        Weather["🌦️ Open-Meteo"]
+        Soil["🌱 SoilGrids"]
     end
 
     Client -- Audio Input --> Whisper
