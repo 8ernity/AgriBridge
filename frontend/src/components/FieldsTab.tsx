@@ -370,7 +370,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
             mapRef.current.flyTo([selectedPlot.lat, selectedPlot.lon], 15);
           }
         },
-        { enableHighAccuracy: true, timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     }
   };

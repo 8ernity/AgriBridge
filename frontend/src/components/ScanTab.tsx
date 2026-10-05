@@ -12,11 +12,13 @@ import {
   Eye,
   MessageSquare,
   Check,
-  ChevronDown
+  ChevronDown,
+  Download
 } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 import { TRANSLATIONS, Locale } from '../services/i18n';
 import { ScanResult, Plot } from '../types';
-import { apiClient } from '../services/api';
+import { apiClient, API_BASE } from '../services/api';
 
 interface ScanTabProps {
   locale: Locale;
@@ -45,6 +47,7 @@ export const ScanTab: React.FC<ScanTabProps> = ({
   const [showGradCam, setShowGradCam] = useState<boolean>(false);
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [outbreakReported, setOutbreakReported] = useState<boolean>(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -199,11 +202,24 @@ export const ScanTab: React.FC<ScanTabProps> = ({
     }
   };
 
+  const prevLocaleRef = useRef<Locale>(locale);
+  useEffect(() => {
+    if (prevLocaleRef.current !== locale) {
+      prevLocaleRef.current = locale;
+      if (scanResult && imageBlob && !isProcessing) {
+        handleUploadAndDiagnose();
+      }
+    }
+  }, [locale]);
+
+
+
+
   const handleOptInOutbreakReport = async () => {
     if (!scanResult) return;
     setOutbreakReported(true);
     // Submit coarse-grid outbreak notice (FR-9.1)
-    fetch('/api/v1/outbreaks/report', {
+    fetch(`${API_BASE}/outbreaks/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -213,6 +229,56 @@ export const ScanTab: React.FC<ScanTabProps> = ({
         disease: scanResult.top_disease
       })
     }).catch(() => {});
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!scanResult || !scanResult.scan_id) return;
+    setIsDownloadingPdf(true);
+    try {
+      const reportText = await apiClient.getScientificReport(scanResult.scan_id, locale);
+      
+      const element = document.createElement('div');
+      element.id = 'temp-pdf-container';
+      element.style.padding = '30px';
+      element.style.fontFamily = 'Arial, sans-serif';
+      element.style.color = '#333';
+      element.style.lineHeight = '1.6';
+      
+      const title = document.createElement('h2');
+      title.innerText = `Scientific Report: ${scanResult.crop} - ${scanResult.top_disease}`;
+      title.style.color = '#2d6a4f';
+      title.style.borderBottom = '2px solid #2d6a4f';
+      title.style.paddingBottom = '10px';
+      title.style.marginBottom = '20px';
+      element.appendChild(title);
+      
+      const content = document.createElement('div');
+      content.style.whiteSpace = 'pre-wrap';
+      content.style.fontSize = '14px';
+      content.innerText = reportText;
+      element.appendChild(content);
+      
+      document.body.appendChild(element);
+      
+      const opt: any = {
+        margin: 15,
+        filename: `AgriBridge_Report_${scanResult.crop}_${scanResult.top_disease.replace(/ /g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      await html2pdf().from(element).set(opt).save();
+    } catch (err: any) {
+      alert(`Failed to download PDF: ${err.message || err}`);
+    } finally {
+      setIsDownloadingPdf(false);
+      // Clean up the temporary element if it was appended
+      const tempElement = document.getElementById('temp-pdf-container');
+      if (tempElement && document.body.contains(tempElement)) {
+        document.body.removeChild(tempElement);
+      }
+    }
   };
 
   return (
@@ -608,9 +674,18 @@ export const ScanTab: React.FC<ScanTabProps> = ({
                 </div>
               </div>
               <p>{`Have questions about ${scanResult.crop} — ${scanResult.top_disease}? Ask for more information and practical next steps.`}</p>
-              <button className="btn-primary" style={{ width: '100%' }} onClick={() => onOpenAskWithScan(scanResult)}>
+              <button className="btn-primary" style={{ width: '100%', marginBottom: '10px' }} onClick={() => onOpenAskWithScan(scanResult)}>
                 <MessageSquare size={18} />
                 <span>{t.askFollowUp || "Ask Follow-Up Advisory on Diagnosis"}</span>
+              </button>
+              <button 
+                className="btn-secondary" 
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} 
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf}
+              >
+                <Download size={18} />
+                <span>{isDownloadingPdf ? (locale === 'hi' ? "पीडीएफ बना रहे हैं..." : locale === 'bn' ? "পিডিএফ তৈরি হচ্ছে..." : "Generating PDF...") : (locale === 'hi' ? "वैज्ञानिक पीडीएफ रिपोर्ट डाउनलोड करें" : locale === 'bn' ? "বৈজ্ঞানিক পিডিএফ রিপোর্ট ডাউনলোড করুন" : "Download Scientific PDF Report")}</span>
               </button>
             </section>
 
@@ -634,31 +709,39 @@ export const ScanTab: React.FC<ScanTabProps> = ({
           </aside>
 
           <section className="agri-card scan-guidance-card" style={{
-            background: 'var(--brand-green-glow)',
-            borderColor: 'rgba(16, 185, 129, 0.2)',
+            background: 'var(--surface-card)',
+            borderColor: 'var(--border)',
+            borderLeft: '4px solid var(--brand-green)',
             display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'flex-start',
+            flexDirection: 'column',
             gap: 16,
             padding: 24,
             marginTop: 0,
             marginBottom: 16,
-            gridColumn: 1
+            gridColumn: 1,
+            position: 'relative',
+            overflow: 'hidden'
           }}>
             <div style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              borderRadius: 12,
-              width: 42,
-              height: 42,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <ShieldCheck size={24} color="var(--brand-green)" />
-            </div>
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'linear-gradient(90deg, rgba(154, 205, 50, 0.05) 0%, transparent 100%)',
+              pointerEvents: 'none'
+            }} />
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+              <div style={{
+                background: 'rgba(154, 205, 50, 0.15)',
+                borderRadius: 12,
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <ShieldCheck size={20} color="var(--brand-green)" />
+              </div>
               <h3 style={{ 
                 fontSize: '1.2rem', 
                 fontWeight: 800, 
@@ -666,20 +749,54 @@ export const ScanTab: React.FC<ScanTabProps> = ({
                 margin: 0, 
                 fontFamily: 'var(--font-heading)' 
               }}>
-                Recommended Precautions & Action Guidance
+                {t.precautionsTitle || "Recommended Precautions & Action Guidance"}
               </h3>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative' }}>
+              {/* General Summary */}
+              {scanResult.management_summary && (
+                <div>
+                  <h4 style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 6px 0', fontWeight: 700 }}>{t.summaryLabel || "Summary"}</h4>
+                  <p style={{ fontSize: '0.95rem', color: 'var(--foreground)', margin: 0, lineHeight: 1.5 }}>
+                    {scanResult.management_summary}
+                  </p>
+                </div>
+              )}
               
-              <p style={{ 
-                fontSize: '0.95rem', 
-                color: 'var(--foreground)', 
-                margin: 0, 
-                lineHeight: 1.5 
-              }}>
-                {scanResult.management_summary}
-                {scanResult.cultural_practices.map((c, idx) => (
-                  <span key={idx}> {c}</span>
-                ))}
-              </p>
+              {/* Actionable Practices */}
+              {scanResult.cultural_practices && scanResult.cultural_practices.length > 0 && (
+                <div>
+                  <h4 style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 6px 0', fontWeight: 700 }}>{t.actionableGuidanceLabel || "Actionable Guidance"}</h4>
+                  <ul style={{ margin: 0, paddingLeft: 20, fontSize: '0.95rem', color: 'var(--foreground)', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {scanResult.cultural_practices.map((c, idx) => (
+                      <li key={idx} style={{ paddingLeft: 4 }}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Chemical Avoidance / Precautions */}
+              {scanResult.chemical_warning && (
+                <div>
+                  <h4 style={{ fontSize: '0.85rem', color: 'var(--brand-amber)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 6px 0', fontWeight: 700 }}>{t.avoidanceLabel || "Avoidance & Warnings"}</h4>
+                  <div style={{ 
+                    background: 'rgba(251, 191, 36, 0.08)', 
+                    border: '1px solid rgba(251, 191, 36, 0.2)', 
+                    padding: '12px 16px', 
+                    borderRadius: 8,
+                    fontSize: '0.9rem', 
+                    color: 'var(--foreground)', 
+                    lineHeight: 1.5,
+                    display: 'flex',
+                    gap: 12,
+                    alignItems: 'flex-start'
+                  }}>
+                    <AlertTriangle size={18} color="var(--brand-amber)" style={{ marginTop: 1, flexShrink: 0 }} />
+                    <span style={{ color: 'var(--brand-amber)', fontWeight: 500 }}>{scanResult.chemical_warning}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

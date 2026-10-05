@@ -11,6 +11,7 @@ from app.db import get_db
 from app.models.entities import Scan
 from app.schemas.entities import ScanResponse
 from app.services.classifier_service import diagnose_leaf_image, _unknown_scan_response
+from app.services.advisory_service import generate_scientific_report
 
 router = APIRouter(prefix="/scans", tags=["AI Disease Diagnosis"])
 logger = logging.getLogger(__name__)
@@ -105,6 +106,15 @@ def get_scan(scan_id: str, db: Session = Depends(get_db)):
         created_at=scan.created_at.isoformat()
     )
 
+
+@router.get("/{scan_id}/scientific-report", summary="Get detailed scientific report")
+def get_scientific_report(scan_id: str, language: str = "en", db: Session = Depends(get_db)):
+    scan = db.query(Scan).filter(Scan.id == scan_id).first()
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+        
+    report_text = generate_scientific_report(scan.crop, scan.top_disease, language)
+    return {"report": report_text}
 
 @router.get("", summary="List recent scans")
 def list_scans(limit: int = 20, db: Session = Depends(get_db)):

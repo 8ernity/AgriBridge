@@ -1082,30 +1082,81 @@ def diagnose_leaf_image(
     )
     if guidance:
         mgmt_summary = " ".join(guidance["summary"])
+        
+        avoid_prefix = {"hi": "बचाव: ", "bn": "এড়িয়ে চলুন: "}.get(language, "Avoid: ")
+        next_step_prefix = {"hi": "अगला कदम: ", "bn": "পরবর্তী পদক্ষেপ: "}.get(language, "Next step: ")
+        
         scan_practices = (
             guidance["precautions"]
-            + [f"Avoid: {item}" for item in guidance["avoid"]]
-            + [f"Next step: {item}" for item in guidance["next_steps"]]
+            + [f"{avoid_prefix}{item}" for item in guidance["avoid"]]
+            + [f"{next_step_prefix}{item}" for item in guidance["next_steps"]]
         )
-        scan_chemical_warning = (
-            "Gemma 4 provides general AI guidance, not a confirmed diagnosis or treatment prescription. "
-            "Do not apply chemicals based on this scan; confirm with your local KVK or agricultural extension officer."
-        )
+        
+        if language == "hi":
+            scan_chemical_warning = (
+                "जेम्मा 4 सामान्य एआई मार्गदर्शन प्रदान करता है, न कि कोई पक्का निदान या उपचार। "
+                "इस स्कैन के आधार पर रसायनों का उपयोग न करें; अपने स्थानीय कृषि विज्ञान केंद्र (KVK) से पुष्टि करें।"
+            )
+        elif language == "bn":
+            scan_chemical_warning = (
+                "জেম্মা 4 সাধারণ এআই নির্দেশিকা প্রদান করে, কোনো নিশ্চিত রোগ নির্ণয় বা চিকিৎসার প্রেসক্রিপশন নয়। "
+                "এই স্ক্যানের উপর ভিত্তি করে রাসায়নিক প্রয়োগ করবেন না; আপনার স্থানীয় KVK এর সাথে নিশ্চিত করুন।"
+            )
+        else:
+            scan_chemical_warning = (
+                "Gemma 4 provides general AI guidance, not a confirmed diagnosis or treatment prescription. "
+                "Do not apply chemicals based on this scan; confirm with your local KVK or agricultural extension officer."
+            )
     else:
-        mgmt_summary = (
-            f"Possible {disease_name} detected on {best_info.get('crop', predicted_crop_display)}. "
-            "This screening may be wrong. Monitor the plant and confirm the diagnosis with a local KVK before treatment."
-        )
+        if language == "hi":
+            mgmt_summary = (
+                f"{best_info.get('crop', predicted_crop_display)} पर संभावित {disease_name} का पता चला है। "
+                "यह स्क्रीनिंग गलत हो सकती है। उपचार से पहले स्थानीय KVK से निदान की पुष्टि करें।"
+            )
+        elif language == "bn":
+            mgmt_summary = (
+                f"{best_info.get('crop', predicted_crop_display)} এ সম্ভাব্য {disease_name} সনাক্ত করা হয়েছে। "
+                "এই স্ক্রীনিং ভুল হতে পারে। চিকিৎসার আগে স্থানীয় KVK এর সাথে রোগ নির্ণয় নিশ্চিত করুন।"
+            )
+        else:
+            mgmt_summary = (
+                f"Possible {disease_name} detected on {best_info.get('crop', predicted_crop_display)}. "
+                "This screening may be wrong. Monitor the plant and confirm the diagnosis with a local KVK before treatment."
+            )
+            
         scan_practices = _get_localized_list(best_info.get("cultural_practices"), language)
         if not scan_practices:
-            scan_practices = [
-                "Monitor affected plants and photograph symptom changes for an agricultural specialist.",
-                "Avoid applying pesticides or fungicides until the diagnosis is confirmed.",
-            ]
-        scan_chemical_warning = (
-            "AI guidance is unavailable. Do not apply chemicals based on this scan; "
-            "confirm with your local KVK or agricultural extension officer."
-        )
+            if language == "hi":
+                scan_practices = [
+                    "प्रभावित पौधों की निगरानी करें और कृषि विशेषज्ञ के लिए लक्षणों में बदलाव की तस्वीर लें।",
+                    "जब तक निदान की पुष्टि न हो जाए, तब तक कीटनाशकों या कवकनाशकों के प्रयोग से बचें।"
+                ]
+            elif language == "bn":
+                scan_practices = [
+                    "আক্রান্ত গাছপালা পর্যবেক্ষণ করুন এবং কৃষি বিশেষজ্ঞের জন্য উপসর্গের পরিবর্তনের ছবি তুলুন।",
+                    "রোগ নির্ণয় নিশ্চিত না হওয়া পর্যন্ত কীটনাশক বা ছত্রাকনাশক প্রয়োগ করা থেকে বিরত থাকুন।"
+                ]
+            else:
+                scan_practices = [
+                    "Monitor affected plants and photograph symptom changes for an agricultural specialist.",
+                    "Avoid applying pesticides or fungicides until the diagnosis is confirmed.",
+                ]
+                
+        if language == "hi":
+            scan_chemical_warning = (
+                "एआई मार्गदर्शन उपलब्ध नहीं है। इस स्कैन के आधार पर रसायनों का उपयोग न करें; "
+                "अपने स्थानीय KVK या कृषि विस्तार अधिकारी से पुष्टि करें।"
+            )
+        elif language == "bn":
+            scan_chemical_warning = (
+                "এআই গাইডেন্স অনুপলব্ধ। এই স্ক্যানের উপর ভিত্তি করে রাসায়নিক প্রয়োগ করবেন না; "
+                "আপনার স্থানীয় KVK বা কৃষি সম্প্রসারণ কর্মকর্তার সাথে নিশ্চিত করুন।"
+            )
+        else:
+            scan_chemical_warning = (
+                "AI guidance is unavailable. Do not apply chemicals based on this scan; "
+                "confirm with your local KVK or agricultural extension officer."
+            )
 
     sources_raw = best_info.get("sources", [])
     sources_out = [

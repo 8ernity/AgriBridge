@@ -207,12 +207,12 @@ def _parse_scan_guidance(text: str) -> Optional[Dict[str, Any]]:
                for key, items in sections.items()}
     if any(not cleaned[key] for key in ("summary", "precautions", "avoid", "next_steps")):
         return None
-    if sum(len(item) for items in cleaned.values() for item in items) > 1800:
+    if sum(len(item) for items in cleaned.values() for item in items) > 5000:
         return None
     combined = " ".join(item for items in cleaned.values() for item in items)
     if re.search(r"\b\d+(?:\.\d+)?\s*(?:ml|mg|g|ppm|%)(?:\s*(?:/|per)\s*\w+)?", combined, re.IGNORECASE):
         return None
-    return {key: items[:4] for key, items in cleaned.items()}
+    return {key: items[:15] for key, items in cleaned.items()}
 
 
 def generate_scan_guidance(
@@ -228,17 +228,18 @@ def generate_scan_guidance(
 An image classifier reported a POSSIBLE condition; it may be wrong.
 Crop: {crop}
 Possible condition: {disease}
-Write in language code: {language}
+Write the CONTENT in language code: {language}
+CRITICAL INSTRUCTION: You MUST use the exact English headings below. Do NOT translate the headings 'SUMMARY', 'PRECAUTIONS', 'AVOID', and 'NEXT_STEPS' to {language}.
 
-Return only these four labeled sections, exactly once each, with concise plain text:
-SUMMARY: Say this is a possible screening result, not a confirmed diagnosis.
-PRECAUTIONS: Give 2-3 low-risk, non-chemical immediate precautions.
-AVOID: Give 1-2 harmful actions to avoid, especially unconfirmed chemical treatment.
-NEXT_STEPS: Give 1-2 observation/confirmation steps and advise contacting a local KVK/agricultural extension officer.
+Return only these four labeled sections, exactly once each, with detailed and pointwise plain text:
+SUMMARY: Say this is a possible screening result, not a confirmed diagnosis. Provide a detailed summary.
+PRECAUTIONS: Give detailed, pointwise, low-risk, non-chemical immediate precautions.
+AVOID: Give detailed, pointwise actions to avoid, especially unconfirmed chemical treatment.
+NEXT_STEPS: Give detailed, pointwise observation/confirmation steps and advise contacting a local KVK/agricultural extension officer.
 
 Do not give pesticide/fungicide names, chemical recipes, dosages, or claim certainty.
 Do not invent region-specific facts, sources, or symptoms not established by the input.
-Keep all sections brief and actionable."""
+Make the explanation detailed and pointwise as requested."""
     try:
         response = client.models.generate_content(model=GEMMA_MODEL_ID, contents=prompt)
         if not response or not getattr(response, "text", None):
@@ -250,6 +251,32 @@ Keep all sections brief and actionable."""
     except Exception as exc:
         logger.warning("Gemma 4 scan guidance unavailable: %s", exc)
         return None
+
+def generate_scientific_report(crop: str, disease: str, language: str = "en") -> str:
+    """Return a detailed scientific report on the disease using Gemma."""
+    client = _get_gemini_client()
+    if client is None:
+        return "Scientific report generation is unavailable at the moment (API key missing)."
+    
+    prompt = f"""You are an expert plant pathologist and agronomist.
+Write a detailed, highly scientific report on the disease '{disease}' affecting '{crop}'.
+Language: {language}
+
+Include the following sections clearly labeled with their exact headings:
+1. SCIENTIFIC CLASSIFICATION & ETIOLOGY
+2. PATHOGENESIS & EPIDEMIOLOGY
+3. BIOCHEMICAL & PHYSIOLOGICAL SYMPTOMS
+4. INTEGRATED DISEASE MANAGEMENT (IDM)
+
+Provide deep scientific terminology, biological pathways, and environmental triggers.
+Return plain text without any markdown symbols like asterisks or hash tags."""
+    try:
+        response = client.models.generate_content(model=GEMMA_MODEL_ID, contents=prompt)
+        if response and getattr(response, "text", None):
+            return response.text.strip()
+    except Exception as exc:
+        logger.error(f"Failed to generate scientific report: {{exc}}")
+    return "Error generating the scientific report."
     try:
         from google import genai
         return genai.Client(api_key=api_key)
@@ -262,7 +289,8 @@ def generate_advisory_response(
     request: AdvisoryRequest,
     plot_context: Optional[Dict[str, Any]] = None,
     weather_context: Optional[Dict[str, Any]] = None,
-    soil_context: Optional[Dict[str, Any]] = None
+    soil_context: Optional[Dict[str, Any]] = None,
+    scan_context: Optional[Dict[str, Any]] = None
 ) -> AdvisoryResponse:
     """Generate source-grounded agronomic advisory using BGE RAG and LLM reasoning."""
     # Check guardrails
@@ -281,8 +309,13 @@ def generate_advisory_response(
             created_at=datetime.datetime.utcnow().isoformat()
         )
 
+    # Enhance the search query if scan context is present
+    search_query = request.question
+    if scan_context:
+        search_query = f"{scan_context.get('crop')} {scan_context.get('top_disease')} " + request.question
+
     # 1. Retrieve relevant passages from the bundled demonstration corpus
-    selected = retrieve_relevant_passages(request.question, top_k=2)
+    selected = retrieve_relevant_passages(search_query, top_k=2)
 
     lang = request.language or "en"
     lang_key = f"content_{lang}" if f"content_{lang}" in selected[0] else "content_en"
@@ -302,6 +335,8 @@ def generate_advisory_response(
 
     # Context items
     ctx_intro = []
+    if scan_context:
+        ctx_intro.append(f"Recent Diagnosis: {scan_context.get('crop')} has {scan_context.get('top_disease')} ({int(scan_context.get('confidence', 0)*100)}% confidence)")
     if plot_context:
         ctx_intro.append(f"Plot '{plot_context.get('name')}' (Crop: {plot_context.get('crop', '').title()})")
     if weather_context:
@@ -320,9 +355,11 @@ def generate_advisory_response(
                 f"[Source {i+1}: {p['title']} by {p['publisher']}]\n{p.get(lang_key, p['content_en'])}"
                 for i, p in enumerate(selected)
             ])
+            lang_name_map = {"en": "English", "hi": "Hindi", "bn": "Bengali"}
+            lang_name = lang_name_map.get(lang, "English")
             prompt = (
                 f"You are an experimental agricultural information assistant for Indian farming contexts.\n"
-                f"Answer the farmer's question in language '{lang}'.\n"
+                f"IMPORTANT: You MUST answer the farmer's question entirely in the {lang_name} language. Do not reply in English unless {lang_name} is English.\n"
                 f"Plot Context: {', '.join(ctx_intro) if ctx_intro else 'General Farm'}\n"
                 f"Farmer Question: {request.question}\n\n"
                 f"Reference snippets (demo corpus; attribution unverified):\n{sources_text}\n\n"
@@ -387,11 +424,12 @@ async def stream_advisory_chunks(
     request: AdvisoryRequest,
     plot_context: Optional[Dict[str, Any]] = None,
     weather_context: Optional[Dict[str, Any]] = None,
-    soil_context: Optional[Dict[str, Any]] = None
+    soil_context: Optional[Dict[str, Any]] = None,
+    scan_context: Optional[Dict[str, Any]] = None
 ) -> AsyncGenerator[str, None]:
     """Streaming responses via Server-Sent Events (SSE) for low-latency feedback on mobile connections."""
     import json
-    response_obj = generate_advisory_response(request, plot_context, weather_context, soil_context)
+    response_obj = generate_advisory_response(request, plot_context, weather_context, soil_context, scan_context)
     words = response_obj.answer.split(" ")
 
     for i in range(0, len(words), 3):

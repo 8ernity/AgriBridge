@@ -17,7 +17,9 @@ import {
   getOfflineScansCount
 } from './offlineStorage';
 
-const API_BASE = '/api/v1';
+export const API_BASE = (import.meta as any).env.VITE_API_BASE_URL 
+  ? `${(import.meta as any).env.VITE_API_BASE_URL}/api/v1` 
+  : '/api/v1';
 
 // Local storage keys for offline resilience (FR-4.8, FR-8.2)
 const STORAGE_PLOTS_KEY = 'agribridge_local_plots';
@@ -179,6 +181,15 @@ export const apiClient = {
     return result;
   },
 
+  async getScientificReport(scanId: string, language: string = 'en'): Promise<string> {
+    const res = await fetch(`${API_BASE}/scans/${scanId}/scientific-report?language=${language}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch report (HTTP ${res.status})`);
+    }
+    const data = await res.json();
+    return data.report;
+  },
+
   // Scan History
   getScanHistory(): ScanResult[] {
     const raw = localStorage.getItem(STORAGE_SCANS_KEY);
@@ -208,6 +219,7 @@ export const apiClient = {
   async askAdvisoryStreaming(
     question: string,
     plotId: string | undefined,
+    scanId: string | undefined,
     language: string,
     onToken: (token: string) => void,
     onComplete: (data: any) => void,
@@ -217,7 +229,7 @@ export const apiClient = {
       const res = await fetch(`${API_BASE}/advisories?stream=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, plot_id: plotId, language })
+        body: JSON.stringify({ question, plot_id: plotId, scan_id: scanId, language })
       });
 
       if (!res.ok) throw new Error('Advisory request failed');

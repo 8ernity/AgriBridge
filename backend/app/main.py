@@ -64,7 +64,7 @@ def health_check():
     }
 
 
-# Mount API Version 1 Routers
+# Mount API Version 1 Routers (MUST be before catch-all route)
 app.include_router(config_router, prefix="/api/v1")
 app.include_router(plots_router, prefix="/api/v1")
 app.include_router(scans_router, prefix="/api/v1")
@@ -74,15 +74,32 @@ app.include_router(voice_router, prefix="/api/v1")
 app.include_router(outbreaks_router, prefix="/api/v1")
 app.include_router(carbon_router, prefix="/api/v1")
 
-# Serve React Frontend Static Files
+# Serve React Frontend Static Files (catch-all MUST be last)
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'frontend', 'dist')
 if os.path.isdir(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
     
-    @app.get("/{full_path:path}")
+    @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_frontend(full_path: str):
-        # Serve index.html for all non-API routes (SPA routing)
+        # Serve index.html for all non-API, non-asset routes (SPA routing)
         path = os.path.join(frontend_dist, full_path)
         if os.path.isfile(path):
             return FileResponse(path)
+        return FileResponse(os.path.join(frontend_dist, 'index.html'))
+    
+    # Serve static files directly (not using catch-all for API routes)
+    @app.get("/manifest.json", include_in_schema=False)
+    async def serve_manifest():
+        return FileResponse(os.path.join(frontend_dist, 'manifest.json'))
+    
+    @app.get("/sw.js", include_in_schema=False)
+    async def serve_sw():
+        return FileResponse(os.path.join(frontend_dist, 'sw.js'))
+    
+    @app.get("/grid.svg", include_in_schema=False)
+    async def serve_grid():
+        return FileResponse(os.path.join(frontend_dist, 'grid.svg'))
+    
+    @app.get("/", include_in_schema=False)
+    async def serve_root():
         return FileResponse(os.path.join(frontend_dist, 'index.html'))

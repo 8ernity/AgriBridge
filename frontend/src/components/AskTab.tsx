@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { TRANSLATIONS, Locale } from '../services/i18n';
 import { AdvisoryMessage, Plot, ScanResult, SourceCitation } from '../types';
-import { apiClient } from '../services/api';
+import { apiClient, API_BASE } from '../services/api';
 
 interface AskTabProps {
   locale: Locale;
@@ -103,6 +103,7 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
     await apiClient.askAdvisoryStreaming(
       textToSend,
       activePlot?.id,
+      latestScan?.scan_id,
       locale,
       (tokenChunk) => {
         accumulatedText += tokenChunk;
@@ -208,7 +209,7 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
 
   const handleFeedback = (msgId: string, rating: 'helpful' | 'not_helpful') => {
     setFeedbackSent((prev) => ({ ...prev, [msgId]: true }));
-    fetch(`/api/v1/advisories/${msgId}/feedback`, {
+    fetch(`${API_BASE}/advisories/${msgId}/feedback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ feedback: rating })
@@ -216,9 +217,13 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
   };
 
   return (
-    <div className="content-area animate-fade-in" style={{ paddingBottom: 90 }}>
+    <div className="content-area animate-fade-in" style={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      height: 'calc(100dvh - 140px)', // Fixed height for chat bot feel
+    }}>
       {/* Title Header */}
-      <div>
+      <div style={{ flexShrink: 0 }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)', fontFamily: 'var(--font-heading)' }}>
           {t.navAsk}: Localized RAG Advisory
         </h2>
@@ -228,7 +233,7 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
       </div>
 
       {/* Active Context Chips Bar (FR-5.1) */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, flexShrink: 0 }}>
         {activePlot && (
           <span className="tag-chip" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--brand-green)' }}>
             🌱 Plot: {activePlot.name} ({activePlot.crop})
@@ -245,7 +250,7 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
       </div>
 
       {/* Quick Question Chips (FR-5.1) */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginTop: 8, flexShrink: 0 }}>
         {quickChips.map((chip, i) => (
           <button
             key={i}
@@ -273,10 +278,9 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
-        minHeight: 280,
-        maxHeight: '52vh',
-        overflowY: 'auto',
-        padding: '6px 2px'
+        flex: 1, // takes up remaining space!
+        padding: '12px 2px',
+        overflowY: 'auto'
       }}>
         {messages.map((m) => (
           <div
@@ -397,13 +401,15 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
 
       {/* Input Control Box */}
       <div style={{
-        position: 'sticky',
-        bottom: 0,
+        flexShrink: 0,
         background: 'var(--background)',
         paddingTop: 8,
+        paddingBottom: 8,
         display: 'flex',
         gap: 8,
-        alignItems: 'center'
+        alignItems: 'center',
+        borderTop: '1px solid var(--border)',
+        marginTop: 'auto'
       }}>
         <button
           onClick={handleVoiceInput}

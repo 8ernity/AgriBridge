@@ -315,7 +315,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Layers size={18} style={{ color: 'var(--brand-green)' }} />
-              <span>Plot & Soil Baseline</span>
+              <span>{t.carbonPlotSoilBaseline || 'Plot & Soil Baseline'}</span>
             </h2>
             {loading && <RefreshCw size={16} className="animate-spin" style={{ color: 'var(--brand-green)' }} />}
           </div>
@@ -323,7 +323,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
           {/* Plot Selector */}
           <div>
             <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-              Select Registered Farm Plot
+              {t.carbonSelectPlot || 'Select Registered Farm Plot'}
             </label>
             <select
               value={selectedPlotId}
@@ -331,7 +331,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               className="modern-input"
               style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem' }}
             >
-              <option value="custom">-- Custom Parcel Parameters --</option>
+              <option value="custom">{t.carbonCustomParcel || '-- Custom Parcel Parameters --'}</option>
               {plots.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.crop} - {p.area_ha} ha)
@@ -344,7 +344,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.25rem' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Parcel Area</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{t.carbonParcelArea || 'Parcel Area'}</span>
                 <span style={{ color: 'var(--brand-green)', fontWeight: 700 }}>{areaHa.toFixed(2)} ha</span>
               </div>
               <input
@@ -360,7 +360,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.25rem' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Baseline SOC</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{t.carbonBaselineSoc || 'Baseline SOC'}</span>
                 <span style={{ color: 'var(--brand-cyan)', fontWeight: 700 }}>{socGKg.toFixed(1)} g/kg</span>
               </div>
               <input
@@ -379,7 +379,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                Soil Texture Class
+                {t.carbonSoilTexture || 'Soil Texture Class'}
               </label>
               <select
                 value={soilTexture}
@@ -397,7 +397,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>NDVI input (demo data)</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{t.carbonNdviInput || 'NDVI input (demo data)'}</span>
                 <span style={{ color: 'var(--brand-lime)', fontWeight: 700 }}>{currentNdvi.toFixed(2)}</span>
               </div>
               <input
@@ -622,7 +622,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               }}
             >
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                Annual Rate
+                {t.carbonAnnualRateBox || 'Annual Rate'}
               </div>
               <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--brand-green)', marginTop: '0.25rem' }}>
                 +{result ? result.annual_sequestration_rate_t_co2e_per_ha.toFixed(2) : '--'}
@@ -645,7 +645,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               }}
             >
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                Total Annual CO₂e
+                {t.carbonTotalAnnualBox || 'Total Annual CO₂e'}
               </div>
               <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--brand-cyan)', marginTop: '0.25rem' }}>
                 {result ? result.total_annual_co2e_sequestered_t.toFixed(2) : '--'} t
@@ -691,7 +691,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               }}
             >
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                Carbon Dividend
+                {t.carbonDividendBox || 'Carbon Dividend'}
               </div>
               <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--brand-amber)', marginTop: '0.25rem' }}>
                 {result ? `${result.local_currency_symbol}${Math.round(result.annual_carbon_dividend_local).toLocaleString()}` : '--'}
@@ -717,10 +717,10 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               <div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                   <TrendingUp size={16} style={{ color: 'var(--brand-green)' }} />
-                  <span>Illustrative Multi-Year Projection</span>
+                  <span>{t.carbonProjTitle || 'Illustrative Multi-Year Projection'}</span>
                 </h3>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Microbial aggregate stabilization trajectory up to Year {yearsProjection}
+                  {t.carbonProjSubtitle || 'Microbial aggregate stabilization trajectory up to Year'} {yearsProjection}
                 </div>
               </div>
 
@@ -836,6 +836,55 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               gap: '0.85rem'
             }}
           >
+            {/* Annual Sequestration */}
+            <div
+              className="glass-card"
+              style={{
+                padding: '1rem',
+                borderRadius: '0.95rem',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--glass-shadow)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
+                <TrendingUp size={16} style={{ color: 'var(--brand-green)' }} />
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                  {t.carbonAnnualSeqTitle || 'Annual Sequestration'}
+                </span>
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-green)' }}>
+                {result ? result.total_annual_co2e_sequestered_t.toLocaleString() : '--'} t CO₂e
+              </div>
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                {t.carbonAnnualSeqDesc || 'Total estimated yearly sequestration'}
+              </div>
+            </div>
+
+            {/* Projected Dividend */}
+            <div
+              className="glass-card"
+              style={{
+                padding: '1rem',
+                borderRadius: '0.95rem',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--glass-shadow)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
+                <DollarSign size={16} style={{ color: 'var(--brand-amber)' }} />
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                  {t.carbonDividendTitle || 'Projected Dividend'}
+                </span>
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-amber)' }}>
+                {result ? `${result.local_currency_symbol}${result.annual_carbon_dividend_local.toLocaleString()}` : '--'}
+              </div>
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                {t.carbonDividendDesc || 'Estimated annual payout'}
+              </div>
+            </div>
             {/* Above-ground Canopy */}
             <div
               className="glass-card"
@@ -850,14 +899,14 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
                 <Sprout size={16} style={{ color: 'var(--brand-green)' }} />
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                  Canopy Biomass (NDVI)
+                  {t.carbonCanopyTitle || 'Canopy Biomass (NDVI)'}
                 </span>
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-green)' }}>
                 {result ? result.aboveground_canopy_biomass_kg_per_ha.toLocaleString() : '--'} kg/ha
               </div>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                Formula-based canopy estimate; no satellite pixels are used
+                {t.carbonCanopyDesc || 'Formula-based canopy estimate; no satellite pixels are used'}
               </div>
             </div>
 
@@ -875,14 +924,14 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
                 <Layers size={16} style={{ color: 'var(--brand-cyan)' }} />
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                  Root System Biomass
+                  {t.carbonRootTitle || 'Root System Biomass'}
                 </span>
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-cyan)' }}>
                 {result ? result.belowground_root_biomass_kg_per_ha.toLocaleString() : '--'} kg/ha
               </div>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                28% root-to-shoot allocation factor
+                {t.carbonRootDesc || '28% root-to-shoot allocation factor'}
               </div>
             </div>
 
@@ -900,14 +949,14 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
                 <Sparkles size={16} style={{ color: 'var(--brand-purple)' }} />
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                  Soil Microbial Carbon
+                  {t.carbonMicrobialTitle || 'Soil Microbial Carbon'}
                 </span>
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-purple)' }}>
                 {result ? result.soil_microbial_biomass_kg_per_ha.toLocaleString() : '--'} kg/ha
               </div>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                Active biological rhizosphere pool
+                {t.carbonMicrobialDesc || 'Active biological rhizosphere pool'}
               </div>
             </div>
 
@@ -925,14 +974,14 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
                 <Shield size={16} style={{ color: 'var(--brand-amber)' }} />
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                  Avoided N₂O Emissions
+                  {t.carbonAvoidedTitle || 'Avoided N₂O Emissions'}
                 </span>
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-amber)' }}>
                 {result ? result.avoided_n2o_emissions_kg.toLocaleString() : '0'} kg
               </div>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                CO₂e saved by legume nitrogen fixation
+                {t.carbonAvoidedDesc || 'CO₂e saved by legume nitrogen fixation'}
               </div>
             </div>
           </div>

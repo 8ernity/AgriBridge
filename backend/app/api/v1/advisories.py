@@ -23,10 +23,18 @@ from app.services.advisory_service import (
 router = APIRouter(prefix="/advisories", tags=["RAG Agronomic Advisory"])
 
 
-async def _assemble_plot_contexts(plot_id: Optional[str], db: Session):
+from app.models.entities import Advisory, Plot, Scan
+
+async def _assemble_plot_contexts(plot_id: Optional[str], scan_id: Optional[str], db: Session):
     plot_ctx = None
     weather_ctx = None
     soil_ctx = None
+    scan_ctx = None
+
+    if scan_id:
+        s = db.query(Scan).filter(Scan.id == scan_id).first()
+        if s:
+            scan_ctx = {"crop": s.crop, "top_disease": s.top_disease, "confidence": s.confidence}
 
     if plot_id:
         p = db.query(Plot).filter(Plot.id == plot_id).first()
@@ -43,7 +51,7 @@ async def _assemble_plot_contexts(plot_id: Optional[str], db: Session):
             except Exception:
                 pass
 
-    return plot_ctx, weather_ctx, soil_ctx
+    return plot_ctx, weather_ctx, soil_ctx, scan_ctx
 
 
 @router.post("", summary="Ask agronomic advisory question (Supports SSE Streaming)")
@@ -56,16 +64,16 @@ async def ask_advisory(
     Submits an agronomic question grounded in plot context, live weather, and SoilGrids data.
     Cites source documents and enforces strict safety guardrails against unvetted chemical recommendations.
     """
-    plot_ctx, weather_ctx, soil_ctx = await _assemble_plot_contexts(request.plot_id, db)
+    plot_ctx, weather_ctx, soil_ctx, scan_ctx = await _assemble_plot_contexts(request.plot_id, request.scan_id, db)
 
     if stream:
         return StreamingResponse(
-            stream_advisory_chunks(request, plot_ctx, weather_ctx, soil_ctx),
+            stream_advisory_chunks(request, plot_ctx, weather_ctx, soil_ctx, scan_ctx),
             media_type="text/event-stream"
         )
 
     # Standard JSON response
-    res = generate_advisory_response(request, plot_ctx, weather_ctx, soil_ctx)
+    res = generate_advisory_response(request, plot_ctx, weather_ctx, soil_ctx, scan_ctx)
 
     # Store in database
     try:

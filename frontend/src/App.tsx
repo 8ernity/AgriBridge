@@ -149,7 +149,8 @@ export const App: React.FC = () => {
                 setSelectedPlot(newPlot);
               }).catch(console.error);
             },
-            (err) => console.warn('GPS denied or failed', err)
+            (err) => console.warn('GPS denied or failed', err),
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
           );
         }
       }

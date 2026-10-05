@@ -1,6 +1,7 @@
 """Local Whisper transcription endpoint for multilingual farmer queries."""
 import asyncio
 import logging
+import os
 import tempfile
 import threading
 from pathlib import Path
@@ -16,13 +17,38 @@ _whisper_model = None
 _whisper_model_lock = threading.Lock()
 
 
+def _configure_model_cache() -> Path:
+    """Keep model downloads in the project cache unless explicitly configured."""
+    configured_cache = os.environ.get("HF_HUB_CACHE") or os.environ.get("HUGGINGFACE_HUB_CACHE")
+    default_cache = Path(__file__).resolve().parents[4] / "models" / "hf_cache"
+    cache_path = Path(configured_cache).expanduser() if configured_cache else default_cache
+    os.environ.setdefault("HF_HUB_CACHE", str(cache_path))
+    return cache_path
+
+
+def _get_cached_model_path(cache_path: Path) -> Optional[Path]:
+    """Return the downloaded model snapshot when all required files are present."""
+    repo_cache = cache_path / "models--Systran--faster-whisper-small"
+    revision_file = repo_cache / "refs" / "main"
+    try:
+        revision = revision_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    snapshot = repo_cache / "snapshots" / revision
+    required_files = ("model.bin", "config.json", "tokenizer.json", "vocabulary.txt")
+    return snapshot if all((snapshot / name).is_file() for name in required_files) else None
+
+
 def _get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
         with _whisper_model_lock:
             if _whisper_model is None:
+                cache_path = _configure_model_cache()
                 from faster_whisper import WhisperModel
-                _whisper_model = WhisperModel(WHISPER_MODEL_ID, device="cpu", compute_type="int8")
+                local_model_path = _get_cached_model_path(cache_path)
+                model_source = str(local_model_path) if local_model_path else WHISPER_MODEL_ID
+                _whisper_model = WhisperModel(model_source, device="cpu", compute_type="int8")
     return _whisper_model
 
 
@@ -99,12 +125,25 @@ async def transcribe_voice(
         }
     except HTTPException:
         raise
-    except Exception:
+    except ModuleNotFoundError as exc:
+        logger.exception("Whisper dependency is missing")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Whisper dependencies are missing. Install backend requirements and restart the backend."
+        ) from exc
+    except PermissionError as exc:
+        cache_path = _configure_model_cache()
+        logger.exception("Whisper cannot write to its model cache at %s", cache_path)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Whisper cannot write to its model cache ({cache_path}). Set HF_HUB_CACHE to a writable folder and restart the backend."
+        ) from exc
+    except Exception as exc:
         logger.exception("Local Whisper transcription failed")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Local Whisper is unavailable. Install backend requirements and allow the model to download on first use."
-        )
+            detail="Whisper could not load its model or process the recording. Check backend logs; first use needs internet access to download the model."
+        ) from exc
     finally:
         if temp_path:
             Path(temp_path).unlink(missing_ok=True)
