@@ -14,10 +14,10 @@ agribridge.db
 !.env.example
 *.log
 scratch/
-*.onnx
 *.dll
 *.wasm
 *.pyd
 *.pt
 *.pth
 *.h5
+*.onnx

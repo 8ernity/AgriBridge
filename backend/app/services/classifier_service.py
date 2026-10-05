@@ -133,14 +133,7 @@ _ONNX_PATH = os.getenv(
     "AGRIBRIDGE_ONNX_MODEL_PATH",
     os.path.join(_DEFAULT_MODEL_DIR, "india_v1.onnx"),
 )
-_MODEL_ZIP_URL = (
-    "https://github.com/wpzvqrs8/SIH_2026/releases/download/"
-    "offline-app-v1/AgriSmart-offline-windows.zip"
-)
-_MODEL_DIRECT_URL = (
-    "https://github.com/wpzvqrs8/SIH_2026/releases/download/"
-    "india-model-v1/model.pt"  # .pt — fallback; primary path is zip extraction
-)
+_MODEL_ONNX_URL = "https://github.com/8ernity/AgriBridge/releases/download/models-v1/india_v1.onnx"
 _ONNX_MIN_SIZE = 50_000_000  # 50 MB sanity floor
 
 
@@ -152,22 +145,17 @@ def _ensure_model() -> Optional[str]:
 
     onnx_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Try extracting ONNX from the offline-app zip release
     try:
-        logger.info("[AgriBridge] Downloading india_v1 model release zip (~350 MB)…")
-        req = urllib.request.Request(_MODEL_ZIP_URL, headers={"User-Agent": "AgriBridge/2"})
-        with urllib.request.urlopen(req, timeout=300) as resp:
-            zip_bytes = io.BytesIO(resp.read())
-        with zipfile.ZipFile(zip_bytes) as zf:
-            for member in zf.namelist():
-                if member.endswith("india_v1.onnx"):
-                    with zf.open(member) as src, open(onnx_path, "wb") as dst:
-                        dst.write(src.read())
-                    logger.info("[AgriBridge] Extracted india_v1.onnx → %s", onnx_path)
-                    if onnx_path.stat().st_size >= _ONNX_MIN_SIZE:
-                        return str(onnx_path)
+        logger.info("[AgriBridge] Downloading india_v1 ONNX model (~55 MB)…")
+        req = urllib.request.Request(_MODEL_ONNX_URL, headers={"User-Agent": "AgriBridge/2"})
+        with urllib.request.urlopen(req, timeout=300) as resp, open(onnx_path, "wb") as out_file:
+            out_file.write(resp.read())
+            
+        logger.info("[AgriBridge] Downloaded india_v1.onnx → %s", onnx_path)
+        if onnx_path.stat().st_size >= _ONNX_MIN_SIZE:
+            return str(onnx_path)
     except Exception as exc:
-        logger.warning("[AgriBridge] Zip download failed (%s). Model unavailable.", exc)
+        logger.warning("[AgriBridge] Model download failed (%s). Model unavailable.", exc)
 
     logger.error("[AgriBridge] Could not obtain india_v1.onnx. Inference disabled.")
     return None
