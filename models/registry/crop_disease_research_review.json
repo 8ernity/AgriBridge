@@ -1,0 +1,58 @@
+{
+  "id": "crop-disease-field-robust-research-review-2026",
+  "availability_status": "research_only_not_integrated",
+  "intended_use": "Candidate architectures reviewed for potential replacement of the bundled MobileNetV3-Small detector.",
+  "decision": "No candidate checkpoint or separately licensed implementation was available for safe, verifiable integration. The current pinned ONNX model remains the production detector.",
+  "candidates": [
+    {
+      "name": "ConvGeM-NeXt",
+      "paper": "Arshad et al., ConvGeM-next: a deep learning framework for plant disease detection",
+      "paper_url": "https://doi.org/10.3389/fpls.2026.1763739",
+      "paper_license": "CC BY 4.0 (article only; does not establish code or checkpoint license)",
+      "architecture": "ConvNeXt-Base with learnable generalized-mean pooling and a BatchNorm/ReLU/dropout classifier head",
+      "reported_classes": 27,
+      "reported_parameters_millions": 89,
+      "reported_plantdoc_accuracy_percent": 94.69,
+      "reported_repeated_run_plantdoc_accuracy_mean_std_percent": "92.19 ± 2.58",
+      "reported_training_hardware": "Google Cloud TPU v3-8",
+      "checkpoint_status": "No public checkpoint identified",
+      "code_license": "Not separately published or verified",
+      "dataset_license_status": "PlantDoc repository declares CC BY 4.0; exact PlantVillage copy/terms and derivative-weight rights require verification"
+    },
+    {
+      "name": "Improved Vision Mamba",
+      "paper": "Zhang and Liu, Multi-scale feature fusion-based vision mamba for robust plant disease image classification on field-acquired PlantDoc data",
+      "paper_url": "https://doi.org/10.3389/fpls.2026.1842426",
+      "paper_license": "CC BY 4.0 (article only; does not establish code or checkpoint license)",
+      "architecture": "12-layer Vision Mamba with multi-scale feature fusion, adaptive channel attention, and lightweight residual connections",
+      "reported_classes": 27,
+      "reported_parameters_millions": 31.4,
+      "reported_flops_billions": 7.2,
+      "reported_plantdoc_accuracy_percent": 92.67,
+      "reported_five_fold_plantdoc_accuracy_mean_std_percent": "92.41 ± 0.24",
+      "reported_inference_benchmark": "8.4 ms/image on RTX 4090; CPU performance not reported",
+      "checkpoint_status": "No public checkpoint identified; paper directs further inquiries to corresponding author",
+      "code_license": "Not separately published or verified",
+      "dataset_license_status": "PlantDoc repository declares CC BY 4.0; derivative-weight rights require verification"
+    }
+  ],
+  "sources": [
+    {
+      "name": "PlantDoc classification dataset",
+      "url": "https://github.com/pratikkayal/PlantDoc-Dataset",
+      "license": "CC BY 4.0 as declared in the repository README"
+    },
+    {
+      "name": "PlantVillage dataset source cited by ConvGeM-NeXt",
+      "url": "https://www.kaggle.com/datasets/abdallahalidev/plantvillage-dataset",
+      "license": "Not stated by the paper; verify the exact revision and terms before use or redistribution"
+    }
+  ],
+  "integration_requirements": [
+    "Obtain exact weights, source code, and written redistribution/license terms.",
+    "Record source revision and artifact hashes.",
+    "Benchmark ONNX CPU/GPU inference on AgriBridge target hardware.",
+    "Calibrate low-confidence rejection on held-out field and non-leaf images.",
+    "Independently reproduce field metrics before making the model default."
+  ]
+}
