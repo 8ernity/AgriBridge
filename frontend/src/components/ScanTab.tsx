@@ -237,47 +237,35 @@ export const ScanTab: React.FC<ScanTabProps> = ({
     try {
       const reportText = await apiClient.getScientificReport(scanResult.scan_id, locale);
       
-      const element = document.createElement('div');
-      element.id = 'temp-pdf-container';
-      element.style.padding = '30px';
-      element.style.fontFamily = 'Arial, sans-serif';
-      element.style.color = '#333';
-      element.style.lineHeight = '1.6';
-      
-      const title = document.createElement('h2');
-      title.innerText = `Scientific Report: ${scanResult.crop} - ${scanResult.top_disease}`;
-      title.style.color = '#2d6a4f';
-      title.style.borderBottom = '2px solid #2d6a4f';
-      title.style.paddingBottom = '10px';
-      title.style.marginBottom = '20px';
-      element.appendChild(title);
-      
-      const content = document.createElement('div');
-      content.style.whiteSpace = 'pre-wrap';
-      content.style.fontSize = '14px';
-      content.innerText = reportText;
-      element.appendChild(content);
-      
-      document.body.appendChild(element);
-      
-      const opt: any = {
-        margin: 15,
-        filename: `AgriBridge_Report_${scanResult.crop}_${scanResult.top_disease.replace(/ /g, '_')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      
-      await html2pdf().from(element).set(opt).save();
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(`
+          <html>
+            <head>
+              <title>Scientific Report: ${scanResult.crop} - ${scanResult.top_disease}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 30px; color: #333; line-height: 1.6; }
+                h2 { color: #2d6a4f; border-bottom: 2px solid #2d6a4f; padding-bottom: 10px; margin-bottom: 20px; }
+                pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; }
+              </style>
+            </head>
+            <body>
+              <h2>Scientific Report: ${scanResult.crop} - ${scanResult.top_disease}</h2>
+              <pre>${reportText}</pre>
+            </body>
+          </html>
+        `);
+        win.document.close();
+        setTimeout(() => {
+          win.print();
+        }, 500);
+      } else {
+        alert("Pop-ups are blocked. Please allow pop-ups to print the report.");
+      }
     } catch (err: any) {
       alert(`Failed to download PDF: ${err.message || err}`);
     } finally {
       setIsDownloadingPdf(false);
-      // Clean up the temporary element if it was appended
-      const tempElement = document.getElementById('temp-pdf-container');
-      if (tempElement && document.body.contains(tempElement)) {
-        document.body.removeChild(tempElement);
-      }
     }
   };
 

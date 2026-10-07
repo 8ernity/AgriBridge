@@ -105,6 +105,7 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
       activePlot?.id,
       latestScan?.scan_id,
       locale,
+      messages.map(m => ({ role: m.isUser ? 'user' : 'assistant', content: m.text })),
       (tokenChunk) => {
         accumulatedText += tokenChunk;
         setMessages((prev) =>

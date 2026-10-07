@@ -16,7 +16,8 @@ import {
   MessageSquare,
   X,
   RotateCcw,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { TRANSLATIONS, Locale } from '../services/i18n';
 import { Plot, WeatherData, SoilData, NDVIData, RecommendationData } from '../types';
@@ -28,6 +29,7 @@ interface FieldsTabProps {
   selectedPlot: Plot | null;
   onSelectPlot: (plot: Plot) => void;
   onPlotCreated: (newPlot: Plot) => void;
+  onPlotDeleted: (plotId: string) => void;
   onOpenAskWithPlot: (plot: Plot) => void;
 }
 
@@ -37,6 +39,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
   selectedPlot,
   onSelectPlot,
   onPlotCreated,
+  onPlotDeleted,
   onOpenAskWithPlot
 }) => {
   const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
@@ -62,6 +65,8 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [activeCardTab, setActiveCardTab] = useState<'weather' | 'soil' | 'ndvi' | 'regenerative'>('weather');
+
+  const lastFlownPlotIdRef = useRef<string | null>(null);
 
   const activePlot = selectedPlot || (plots.length > 0 ? plots[0] : null);
 
@@ -261,15 +266,18 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
     });
 
     if (selectedPlot && mapRef.current) {
-      const selLat = Number(selectedPlot.lat);
-      const selLon = Number(selectedPlot.lon);
-      if (!isNaN(selLat) && !isNaN(selLon)) {
-        try {
-          mapRef.current.flyTo([selLat, selLon], 15, {
-            animate: true,
-            duration: 0.9
-          });
-        } catch (e) {}
+      if (lastFlownPlotIdRef.current !== selectedPlot.id) {
+        const selLat = Number(selectedPlot.lat);
+        const selLon = Number(selectedPlot.lon);
+        if (!isNaN(selLat) && !isNaN(selLon)) {
+          try {
+            mapRef.current.flyTo([selLat, selLon], 15, {
+              animate: true,
+              duration: 0.9
+            });
+            lastFlownPlotIdRef.current = selectedPlot.id;
+          } catch (e) {}
+        }
       }
     }
   }, [plots, selectedPlot]);
@@ -297,6 +305,18 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
       setIsLoadingData(false);
     });
   }, [selectedPlot, plots]);
+
+  const handleDeletePlot = async () => {
+    if (!activePlot) return;
+    if (!window.confirm("Are you sure you want to delete this plot?")) return;
+    try {
+      await apiClient.deletePlot(activePlot.id);
+      onPlotDeleted(activePlot.id);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete plot");
+    }
+  };
 
   const handleCreatePlotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -650,14 +670,24 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
               Coordinates: {Number(activePlot?.lat ?? 0).toFixed(4)}, {Number(activePlot?.lon ?? 0).toFixed(4)} • Coarse Grid Protected
             </div>
           </div>
-          <button
-            onClick={() => onOpenAskWithPlot(activePlot)}
-            className="btn-secondary"
-            style={{ minHeight: 36, padding: '6px 12px', fontSize: '0.8rem' }}
-          >
-            <MessageSquare size={16} color="var(--brand-green)" />
-            <span>{locale === 'hi' ? 'खेत सलाहकार से पूछें' : 'Ask About Plot'}</span>
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => onOpenAskWithPlot(activePlot)}
+              className="btn-secondary"
+              style={{ minHeight: 36, padding: '6px 12px', fontSize: '0.8rem' }}
+            >
+              <MessageSquare size={16} color="var(--brand-green)" />
+              <span>{locale === 'hi' ? 'खेत सलाहकार से पूछें' : 'Ask About Plot'}</span>
+            </button>
+            <button
+              onClick={handleDeletePlot}
+              className="btn-secondary"
+              style={{ minHeight: 36, padding: '6px 12px', fontSize: '0.8rem', color: '#ef4444' }}
+              title="Delete Plot"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
       )}
 

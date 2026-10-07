@@ -170,6 +170,7 @@ class AdvisoryRequest(BaseModel):
     scan_id: Optional[str] = None
     question: str
     language: Optional[str] = "en"
+    history: List[Dict[str, str]] = []
 
 
 class AdvisoryResponse(BaseModel):

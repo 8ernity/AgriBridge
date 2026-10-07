@@ -180,41 +180,6 @@ def _get_gemini_client():
         return None
 
 
-def _parse_scan_guidance(text: str) -> Optional[Dict[str, Any]]:
-    sections: Dict[str, List[str]] = {"summary": [], "precautions": [], "avoid": [], "next_steps": []}
-    labels = {
-        "SUMMARY": "summary",
-        "PRECAUTIONS": "precautions",
-        "AVOID": "avoid",
-        "NEXT_STEPS": "next_steps",
-    }
-    current: Optional[str] = None
-    for raw_line in text.splitlines():
-        line = re.sub(r"^\s*[*#>\-•\s]+", "", raw_line).strip()
-        matched = False
-        for label, key in labels.items():
-            match = re.match(rf"^{label}\s*:\s*(.*)$", line, re.IGNORECASE)
-            if match:
-                current = key
-                if match.group(1).strip():
-                    sections[key].append(match.group(1).strip())
-                matched = True
-                break
-        if not matched and current and line:
-            sections[current].append(line)
-
-    cleaned = {key: [re.sub(r"^\s*[-*•]\s*", "", item).strip() for item in items if item.strip()]
-               for key, items in sections.items()}
-    if any(not cleaned[key] for key in ("summary", "precautions", "avoid", "next_steps")):
-        return None
-    if sum(len(item) for items in cleaned.values() for item in items) > 5000:
-        return None
-    combined = " ".join(item for items in cleaned.values() for item in items)
-    if re.search(r"\b\d+(?:\.\d+)?\s*(?:ml|mg|g|ppm|%)(?:\s*(?:/|per)\s*\w+)?", combined, re.IGNORECASE):
-        return None
-    return {key: items[:15] for key, items in cleaned.items()}
-
-
 def generate_scan_guidance(
     crop: str,
     disease: str,
@@ -228,25 +193,51 @@ def generate_scan_guidance(
 An image classifier reported a POSSIBLE condition; it may be wrong.
 Crop: {crop}
 Possible condition: {disease}
-Write the CONTENT in language code: {language}
-CRITICAL INSTRUCTION: You MUST use the exact English headings below. Do NOT translate the headings 'SUMMARY', 'PRECAUTIONS', 'AVOID', and 'NEXT_STEPS' to {language}.
+Language: {language}
 
-Return only these four labeled sections, exactly once each, with detailed and pointwise plain text:
-SUMMARY: Say this is a possible screening result, not a confirmed diagnosis. Provide a detailed summary.
-PRECAUTIONS: Give detailed, pointwise, low-risk, non-chemical immediate precautions.
-AVOID: Give detailed, pointwise actions to avoid, especially unconfirmed chemical treatment.
-NEXT_STEPS: Give detailed, pointwise observation/confirmation steps and advise contacting a local KVK/agricultural extension officer.
+Return a valid JSON object with exactly these four keys. Do not include markdown formatting or backticks around the JSON.
+"summary": A detailed summary in the requested language. Say this is a possible screening result, not a confirmed diagnosis.
+"precautions": An array of strings giving detailed, pointwise, low-risk, non-chemical immediate precautions in the requested language.
+"avoid": An array of strings giving detailed, pointwise actions to avoid in the requested language.
+"next_steps": An array of strings giving detailed, pointwise observation/confirmation steps in the requested language.
 
 Do not give pesticide/fungicide names, chemical recipes, dosages, or claim certainty.
 Do not invent region-specific facts, sources, or symptoms not established by the input.
 Make the explanation detailed and pointwise as requested."""
     try:
+        import json
         response = client.models.generate_content(model=GEMMA_MODEL_ID, contents=prompt)
         if not response or not getattr(response, "text", None):
             return None
-        guidance = _parse_scan_guidance(response.text.strip())
-        if guidance is None:
-            logger.warning("Gemma 4 scan guidance did not match the safe output format")
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[7:]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+        
+        guidance = json.loads(text)
+        
+        # Validate the schema
+        for key in ["summary", "precautions", "avoid", "next_steps"]:
+            if key not in guidance:
+                logger.warning(f"Gemma 4 scan guidance missing key: {key}")
+                return None
+                
+        # Make sure summary is a list if it was a string
+        if isinstance(guidance["summary"], str):
+            guidance["summary"] = [guidance["summary"]]
+            
+        combined_text = " ".join(
+            " ".join(guidance[k]) if isinstance(guidance[k], list) else str(guidance[k]) 
+            for k in guidance
+        )
+        
+        import re
+        if re.search(r"\b\d+(?:\.\d+)?\s*(?:ml|mg|g|ppm|%)(?:\s*(?:/|per)\s*\w+)?", combined_text, re.IGNORECASE):
+            logger.warning("Gemma 4 scan guidance contained potential chemical dosages.")
+            return None
+            
         return guidance
     except Exception as exc:
         logger.warning("Gemma 4 scan guidance unavailable: %s", exc)
@@ -357,10 +348,17 @@ def generate_advisory_response(
             ])
             lang_name_map = {"en": "English", "hi": "Hindi", "bn": "Bengali"}
             lang_name = lang_name_map.get(lang, "English")
+            history_text = ""
+            if getattr(request, "history", None):
+                for msg in request.history:
+                    role_str = "Farmer" if msg.get("role") == "user" else "Assistant"
+                    history_text += f"{role_str}: {msg.get('content')}\n"
+                    
             prompt = (
                 f"You are an experimental agricultural information assistant for Indian farming contexts.\n"
                 f"IMPORTANT: You MUST answer the farmer's question entirely in the {lang_name} language. Do not reply in English unless {lang_name} is English.\n"
                 f"Plot Context: {', '.join(ctx_intro) if ctx_intro else 'General Farm'}\n"
+                f"Previous Conversation:\n{history_text}\n\n"
                 f"Farmer Question: {request.question}\n\n"
                 f"Reference snippets (demo corpus; attribution unverified):\n{sources_text}\n\n"
                 f"Rules:\n"

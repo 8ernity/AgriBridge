@@ -89,6 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile overlay backdrop */}
       {mobileOpen && (
         <div
+          className="md:hidden"
           onClick={() => setMobileOpen(false)}
           style={{
             position: 'fixed',

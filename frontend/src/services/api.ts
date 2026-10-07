@@ -81,6 +81,21 @@ export const apiClient = {
     }
   },
 
+  async deletePlot(plotId: string): Promise<void> {
+    try {
+      const res = await fetch(`${API_BASE}/plots/${plotId}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Plot deletion failed');
+    } catch (e) {
+      console.warn("Offline or API failure on delete. Removing locally.", e);
+    }
+    // Update local storage
+    const current = await this.getPlots();
+    const updated = current.filter(p => p.id !== plotId);
+    localStorage.setItem(STORAGE_PLOTS_KEY, JSON.stringify(updated));
+  },
+
   // Environmental Data
   async getPlotWeather(plotId: string): Promise<WeatherData> {
     const res = await fetch(`${API_BASE}/plots/${plotId}/weather`);
@@ -221,6 +236,7 @@ export const apiClient = {
     plotId: string | undefined,
     scanId: string | undefined,
     language: string,
+    history: { role: string; content: string }[],
     onToken: (token: string) => void,
     onComplete: (data: any) => void,
     onError: (err: any) => void
@@ -229,7 +245,7 @@ export const apiClient = {
       const res = await fetch(`${API_BASE}/advisories?stream=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, plot_id: plotId, scan_id: scanId, language })
+        body: JSON.stringify({ question, plot_id: plotId, scan_id: scanId, language, history })
       });
 
       if (!res.ok) throw new Error('Advisory request failed');

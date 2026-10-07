@@ -224,6 +224,13 @@ export const App: React.FC = () => {
     setSelectedPlot(newPlot);
   };
 
+  const handlePlotDeleted = (plotId: string) => {
+    setPlots((prev) => prev.filter(p => p.id !== plotId));
+    if (selectedPlot?.id === plotId) {
+      setSelectedPlot(null);
+    }
+  };
+
   const handleCompleteOnboarding = (chosenLocale: Locale) => {
     handleLocaleChange(chosenLocale);
     localStorage.setItem('agribridge_onboarded', 'true');
@@ -316,6 +323,7 @@ export const App: React.FC = () => {
                     selectedPlot={selectedPlot}
                     onSelectPlot={(p) => setSelectedPlot(p)}
                     onPlotCreated={handlePlotCreated}
+                    onPlotDeleted={handlePlotDeleted}
                     onOpenAskWithPlot={handleOpenAskWithPlot}
                   />
                 )}
