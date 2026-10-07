@@ -11,7 +11,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/voice", tags=["Local Whisper Voice Input"])
-WHISPER_MODEL_ID = "Systran/faster-whisper-small"
+WHISPER_MODEL_ID = "Systran/faster-whisper-tiny"
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
 _whisper_model = None
 _whisper_model_lock = threading.Lock()
@@ -28,7 +28,7 @@ def _configure_model_cache() -> Path:
 
 def _get_cached_model_path(cache_path: Path) -> Optional[Path]:
     """Return the downloaded model snapshot when all required files are present."""
-    repo_cache = cache_path / "models--Systran--faster-whisper-small"
+    repo_cache = cache_path / "models--Systran--faster-whisper-tiny"
     revision_file = repo_cache / "refs" / "main"
     try:
         revision = revision_file.read_text(encoding="utf-8").strip()

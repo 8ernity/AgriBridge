@@ -31,6 +31,7 @@ interface FieldsTabProps {
   onPlotCreated: (newPlot: Plot) => void;
   onPlotDeleted: (plotId: string) => void;
   onOpenAskWithPlot: (plot: Plot) => void;
+  isActive?: boolean;
 }
 
 export const FieldsTab: React.FC<FieldsTabProps> = ({
@@ -40,7 +41,8 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
   onSelectPlot,
   onPlotCreated,
   onPlotDeleted,
-  onOpenAskWithPlot
+  onOpenAskWithPlot,
+  isActive
 }) => {
   const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
 
@@ -193,23 +195,37 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
         iconSize: [14, 14],
         iconAnchor: [7, 7]
       });
-      L.marker(coord, { icon: dotIcon }).addTo(sketchGroupRef.current!);
+      const marker = L.marker(coord as [number, number], { 
+        icon: dotIcon,
+        draggable: true
+      }).addTo(sketchGroupRef.current!);
+
+      marker.on('dragend', (e) => {
+        const newPos = e.target.getLatLng();
+        setDrawnCoords(prev => {
+          const newCoords = [...prev];
+          newCoords[idx] = [newPos.lat, newPos.lng];
+          return newCoords;
+        });
+      });
     });
 
     // Draw connecting line or closed polygon
     if (drawnCoords.length >= 3) {
-      L.polygon(drawnCoords, {
+      L.polygon(drawnCoords as [number, number][], {
         color: '#9acd32',
         weight: 2.5,
         fillColor: '#9acd32',
         fillOpacity: 0.35,
-        dashArray: '4, 4'
+        dashArray: '4, 4',
+        interactive: false
       }).addTo(sketchGroupRef.current!);
     } else if (drawnCoords.length === 2) {
-      L.polyline(drawnCoords, {
+      L.polyline(drawnCoords as [number, number][], {
         color: '#9acd32',
         weight: 2.5,
-        dashArray: '4, 4'
+        dashArray: '4, 4',
+        interactive: false
       }).addTo(sketchGroupRef.current!);
     }
   }, [drawnCoords]);
@@ -247,14 +263,26 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
       const marker = L.marker([pLat, pLon], { icon: plotIcon }).addTo(markersGroupRef.current!);
       marker.on('click', () => onSelectPlot(p));
 
-      // Realistic farm parcel boundary
-      const halfSide = 0.00042 * Math.sqrt(pArea);
-      const parcelCoords: [number, number][] = [
-        [pLat - halfSide * 0.9, pLon - halfSide * 1.1],
-        [pLat + halfSide * 0.8, pLon - halfSide * 0.9],
-        [pLat + halfSide * 1.1, pLon + halfSide * 1.0],
-        [pLat - halfSide * 0.8, pLon + halfSide * 1.1],
-      ];
+      // Use actual user-drawn geojson if available, otherwise realistic fallback
+      let parcelCoords: [number, number][] = [];
+      if (p.geom_geojson) {
+        try {
+          const geo = JSON.parse(p.geom_geojson);
+          if (geo.type === 'Polygon' && geo.coordinates && geo.coordinates[0]) {
+            parcelCoords = geo.coordinates[0].map((c: any[]) => [c[1], c[0]] as [number, number]);
+          }
+        } catch (e) {}
+      }
+
+      if (parcelCoords.length === 0) {
+        const halfSide = 0.00042 * Math.sqrt(pArea);
+        parcelCoords = [
+          [pLat - halfSide * 0.9, pLon - halfSide * 1.1],
+          [pLat + halfSide * 0.8, pLon - halfSide * 0.9],
+          [pLat + halfSide * 1.1, pLon + halfSide * 1.0],
+          [pLat - halfSide * 0.8, pLon + halfSide * 1.1],
+        ];
+      }
 
       L.polygon(parcelCoords, {
         color: isSelected ? '#9acd32' : 'rgba(154, 205, 50, 0.5)',
@@ -271,7 +299,9 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
         const selLon = Number(selectedPlot.lon);
         if (!isNaN(selLat) && !isNaN(selLon)) {
           try {
-            mapRef.current.flyTo([selLat, selLon], 15, {
+            const currentZoom = mapRef.current.getZoom();
+            const targetZoom = currentZoom > 15 ? currentZoom : 16;
+            mapRef.current.flyTo([selLat, selLon], targetZoom, {
               animate: true,
               duration: 0.9
             });
@@ -369,7 +399,9 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
         (pos) => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-          mapRef.current?.flyTo([lat, lon], 16, { animate: true, duration: 1.2 });
+          const currentZoom = mapRef.current?.getZoom() || 16;
+          const targetZoom = currentZoom > 15 ? currentZoom : 16;
+          mapRef.current?.flyTo([lat, lon], targetZoom, { animate: true, duration: 1.2 });
           if (markersGroupRef.current) {
             const gpsIcon = L.divIcon({
               className: 'gps-pulse-marker',
@@ -387,13 +419,26 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
         },
         () => {
           if (selectedPlot && mapRef.current) {
-            mapRef.current.flyTo([selectedPlot.lat, selectedPlot.lon], 15);
+            const currentZoom = mapRef.current.getZoom();
+            const targetZoom = currentZoom > 15 ? currentZoom : 16;
+            mapRef.current.flyTo([selectedPlot.lat, selectedPlot.lon], targetZoom);
           }
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     }
   };
+
+  // Invalidate map size when tab becomes active
+  useEffect(() => {
+    if (isActive && mapRef.current) {
+      setTimeout(() => {
+        try {
+          mapRef.current?.invalidateSize();
+        } catch (e) {}
+      }, 100);
+    }
+  }, [isActive]);
 
   return (
     <div className="content-area animate-fade-in" style={{ paddingBottom: 80 }}>

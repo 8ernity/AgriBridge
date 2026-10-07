@@ -30,17 +30,10 @@ interface HomeTabProps {
   onNavigate: (tab: 'fields' | 'scan' | 'ask' | 'more') => void;
   onSelectPlot: (plot: Plot) => void;
   plots: Plot[];
+  selectedPlot: Plot | null;
   offlineQueueCount: number;
   onSyncOfflineQueue: () => void;
 }
-
-const REGIONS = [
-  "All Plots",
-  "Varanasi District",
-  "Northern Gangetic Plain",
-  "Nashik & Western Ghats",
-  "Malwa & Deccan Plateau"
-] as const;
 
 export const HomeTab: React.FC<HomeTabProps> = ({
   locale,
@@ -48,21 +41,27 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   onNavigate,
   onSelectPlot,
   plots,
+  selectedPlot,
   offlineQueueCount,
   onSyncOfflineQueue
 }) => {
   const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
-  const [selectedRegion, setSelectedRegion] = useState<string>("All Plots");
   const [defaultWeather, setDefaultWeather] = useState<WeatherData | null>(null);
+  const [defaultNdvi, setDefaultNdvi] = useState<any>(null);
   const [recentScans, setRecentScans] = useState<ScanResult[]>([]);
   const [outbreakAlert, setOutbreakAlert] = useState<any>(null);
+
+  const activePlot = selectedPlot || (plots.length > 0 ? plots[0] : null);
 
   useEffect(() => {
     setRecentScans(apiClient.getScanHistory().slice(0, 3));
 
-    if (plots.length > 0) {
-      apiClient.getPlotWeather(plots[0].id)
+    if (activePlot) {
+      apiClient.getPlotWeather(activePlot.id)
         .then(w => setDefaultWeather(w))
+        .catch(() => {});
+      apiClient.getPlotNDVI(activePlot.id)
+        .then(n => setDefaultNdvi(n))
         .catch(() => {});
     }
 
@@ -71,26 +70,26 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         if (res && res.length > 0) setOutbreakAlert(res[0]);
       })
       .catch(() => {});
-  }, [plots]);
+  }, [activePlot]);
 
   // CrimeRakshak 4 Primary KPIs
   const kpis = [
     {
-      title: t.kpiRegisteredPlots || "Registered Farmland",
-      value: `${plots.length} ${locale === 'hi' ? 'खेत' : locale === 'bn' ? 'জমি' : false ? 'Mashamba' : 'Plots'}`,
-      sub: t.kpiActiveBoundaries || "Active GPS Boundaries",
+      title: "Active Field Area",
+      value: activePlot ? `${activePlot.area_ha} ha` : "0 ha",
+      sub: activePlot ? activePlot.crop : "No field selected",
       icon: MapPin,
-      trend: "+1 plot",
+      trend: activePlot ? "Selected" : "N/A",
       trendPositive: true,
       color: "var(--brand-green)"
     },
     {
       title: t.kpiCanopyHealth || "Canopy Health (NDVI)",
-      value: "0.68 DEMO",
-      sub: "Synthetic NDVI demonstration value",
+      value: (defaultNdvi && typeof defaultNdvi.mean_ndvi === 'number') ? defaultNdvi.mean_ndvi.toFixed(2) : (defaultNdvi?.series?.[defaultNdvi.series.length - 1]?.ndvi?.toFixed(2) || "0.00"),
+      sub: defaultNdvi?.is_demo_data ? "Synthetic NDVI demonstration value" : "Sentinel-2 L2A via STAC",
       icon: Activity,
-      trend: "DEMO",
-      trendPositive: false,
+      trend: defaultNdvi?.is_demo_data ? "DEMO" : ((defaultNdvi && typeof defaultNdvi.cloud_cover === 'number') ? `Cloud: ${defaultNdvi.cloud_cover.toFixed(1)}%` : "Clear"),
+      trendPositive: !defaultNdvi?.is_demo_data,
       color: "var(--brand-cyan)"
     },
     {
@@ -167,7 +166,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </p>
         </div>
 
-        {/* Region Filter Selector Bar */}
+        {/* Dynamic Plot Selection Bar */}
         <div
           className="scrollbar-hide"
           style={{
@@ -183,53 +182,59 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           }}
         >
           <Filter size={14} color="var(--muted-foreground)" style={{ margin: '0 4px', flexShrink: 0 }} />
-          {REGIONS.map((region) => (
-            <button
-              key={region}
-              onClick={() => setSelectedRegion(region)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 10,
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease',
-                background: selectedRegion === region ? 'var(--brand-green)' : 'transparent',
-                color: selectedRegion === region ? '#ffffff' : 'var(--muted-foreground)',
-                boxShadow: selectedRegion === region ? '0 2px 8px rgba(16, 185, 129, 0.35)' : 'none'
-              }}
-            >
-              {region === "All Plots" ? (t.allPlots || "All Plots") : region}
-            </button>
-          ))}
+          {plots.length === 0 && (
+            <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', padding: '0 8px' }}>No plots created</span>
+          )}
+          {plots.map((p) => {
+            const isSelected = activePlot?.id === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => onSelectPlot(p)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 10,
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                  background: isSelected ? 'var(--brand-green)' : 'transparent',
+                  color: isSelected ? '#ffffff' : 'var(--muted-foreground)',
+                  boxShadow: isSelected ? '0 2px 8px rgba(16, 185, 129, 0.35)' : 'none'
+                }}
+              >
+                {p.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* CrimeRakshak Early Warning Banner & Governance SLA Row */}
-      <div className="home-banners-grid">
-        {/* Left: Predictive Outbreak Banner */}
+      {/* CrimeRakshak Early Warning Banner */}
+      <div style={{ width: '100%' }}>
+        {/* Predictive Outbreak Banner */}
         <div
           className="glass-card home-banner-card"
           style={{
-            borderLeft: '4px solid var(--brand-red)',
-            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, var(--card) 60%)'
+            borderLeft: '4px solid #ff1a1a',
+            background: 'linear-gradient(90deg, rgba(255, 26, 26, 0.25) 0%, var(--card) 60%)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <div style={{
               padding: 8,
-              background: 'rgba(239, 68, 68, 0.15)',
+              background: 'rgba(255, 26, 26, 0.2)',
               borderRadius: 12,
-              color: 'var(--brand-red)',
+              color: '#ff1a1a',
               flexShrink: 0
             }}>
               <Siren size={18} className="animate-pulse-slow" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--brand-red)' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ff1a1a' }}>
                   Outbreak Surveillance
                 </span>
                 <span style={{
@@ -238,8 +243,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   fontFamily: 'var(--font-mono)',
                   padding: '1px 6px',
                   borderRadius: 9999,
-                  background: 'rgba(239, 68, 68, 0.2)',
-                  color: 'var(--brand-red)'
+                  background: 'rgba(255, 26, 26, 0.25)',
+                  color: '#ff1a1a'
                 }}>
                   {outbreakAlert?.is_demo_data ? 'DEMO' : outbreakAlert ? 'REPORTED' : 'NO REPORTS'}
                 </span>
@@ -256,73 +261,15 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             onClick={() => onNavigate('scan')}
             className="home-banner-btn"
             style={{
-              background: 'rgba(239, 68, 68, 0.15)',
-              color: 'var(--brand-red)',
-              border: '1px solid rgba(239, 68, 68, 0.3)'
+              background: 'rgba(255, 26, 26, 0.2)',
+              color: '#ff1a1a',
+              border: '1px solid rgba(255, 26, 26, 0.4)'
             }}
           >
             Launch Scan →
           </button>
         </div>
 
-        {/* Right: Digital Public Good SLA Card */}
-        <div
-          className="glass-card home-banner-card"
-          style={{
-            borderLeft: '4px solid var(--brand-teal)',
-            background: 'linear-gradient(90deg, rgba(45, 212, 191, 0.1) 0%, var(--card) 60%)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{
-              padding: 8,
-              background: 'rgba(45, 212, 191, 0.15)',
-              borderRadius: 12,
-              color: 'var(--brand-teal)',
-              flexShrink: 0
-            }}>
-              <FileCheck size={18} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--brand-teal)' }}>
-                  DPG STANDARD ARCHITECTURE
-                </span>
-                <span style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  fontFamily: 'var(--font-mono)',
-                  padding: '1px 6px',
-                  borderRadius: 9999,
-                  background: 'rgba(45, 212, 191, 0.2)',
-                  color: 'var(--brand-teal)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3
-                }}>
-                  <CheckCircle2 size={10} /> ONNX RUNTIME
-                </span>
-              </div>
-              <p style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--foreground)', marginTop: 2 }}>
-                Local disease screening • 387 crops supported
-              </p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: 2 }}>
-                All coordinates protected by anonymized centroid grid privacy.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('more')}
-            className="home-banner-btn"
-            style={{
-              background: 'rgba(45, 212, 191, 0.15)',
-              color: 'var(--brand-teal)',
-              border: '1px solid rgba(45, 212, 191, 0.3)'
-            }}
-          >
-            Model Cards →
-          </button>
-        </div>
       </div>
 
       {/* CrimeRakshak 4 KPI Stat Cards 2x2 Grid */}

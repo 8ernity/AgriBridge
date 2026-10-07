@@ -303,20 +303,21 @@ export const App: React.FC = () => {
           <main className="main-scroll-view scrollbar-hide">
             {/* Content Container */}
             <div className="app-content-container">
-              <TabErrorBoundary key={activeTab}>
-                {activeTab === 'home' && (
+              <TabErrorBoundary>
+                <div style={{ display: activeTab === 'home' ? 'block' : 'none', height: '100%' }}>
                   <HomeTab
                     locale={locale}
                     isOnline={isOnline}
                     onNavigate={(tab) => setActiveTab(tab)}
                     onSelectPlot={(p) => setSelectedPlot(p)}
                     plots={plots}
+                    selectedPlot={selectedPlot}
                     offlineQueueCount={offlineQueueCount}
                     onSyncOfflineQueue={syncOfflineScans}
                   />
-                )}
+                </div>
 
-                {activeTab === 'fields' && (
+                <div style={{ display: activeTab === 'fields' ? 'block' : 'none', height: '100%' }}>
                   <FieldsTab
                     locale={locale}
                     plots={plots}
@@ -325,10 +326,11 @@ export const App: React.FC = () => {
                     onPlotCreated={handlePlotCreated}
                     onPlotDeleted={handlePlotDeleted}
                     onOpenAskWithPlot={handleOpenAskWithPlot}
+                    isActive={activeTab === 'fields'}
                   />
-                )}
+                </div>
 
-                {activeTab === 'scan' && (
+                <div style={{ display: activeTab === 'scan' ? 'block' : 'none', height: '100%' }}>
                   <ScanTab
                     locale={locale}
                     isOnline={isOnline}
@@ -336,33 +338,33 @@ export const App: React.FC = () => {
                     onScanCompleted={handleScanCompleted}
                     onOpenAskWithScan={handleOpenAskWithScan}
                   />
-                )}
+                </div>
 
-                {activeTab === 'ask' && (
+                <div style={{ display: activeTab === 'ask' ? 'block' : 'none', height: '100%' }}>
                   <AskTab
                     locale={locale}
                     activePlot={selectedPlot}
                     latestScan={latestScan}
                   />
-                )}
+                </div>
 
-                {activeTab === 'carbon' && (
+                <div style={{ display: activeTab === 'carbon' ? 'block' : 'none', height: '100%' }}>
                   <CarbonTab
                     locale={locale}
                     plots={plots}
                     selectedPlot={selectedPlot}
                     onSelectPlot={(p) => setSelectedPlot(p)}
                   />
-                )}
+                </div>
 
-                {activeTab === 'more' && (
+                <div style={{ display: activeTab === 'more' ? 'block' : 'none', height: '100%' }}>
                   <MoreTab
                     locale={locale}
                     onLocaleChange={handleLocaleChange}
                     theme={theme}
                     onToggleTheme={toggleTheme}
                   />
-                )}
+                </div>
               </TabErrorBoundary>
             </div>
           </main>

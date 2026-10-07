@@ -123,7 +123,7 @@ async def get_plot_soil(lat: float, lon: float) -> SoilResponse:
         "lon": lon_round,
         "lat": lat_round,
         "property": ["phh2o", "soc", "nitrogen", "sand", "silt", "clay"],
-        "depth": "0-30cm",
+        "depth": "15-30cm",
         "value": "mean"
     }
 
