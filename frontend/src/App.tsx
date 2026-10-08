@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Show, SignInButton } from '@clerk/react';
+import { Show } from '@clerk/react';
+import { LoginPage } from './components/LoginPage';
 import { Locale, TRANSLATIONS } from './services/i18n';
 import { Plot, ScanResult } from './types';
 import { apiClient } from './services/api';
@@ -81,6 +82,19 @@ export const App: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(() => {
+    return localStorage.getItem('agribridge_guest_session') === 'true';
+  });
+
+  const handleGuestLogin = () => {
+    localStorage.setItem('agribridge_guest_session', 'true');
+    setIsGuestMode(true);
+  };
+
+  const handleExitGuestMode = () => {
+    localStorage.removeItem('agribridge_guest_session');
+    setIsGuestMode(false);
+  };
 
   // Initialize theme from storage
   useEffect(() => {
@@ -249,171 +263,160 @@ export const App: React.FC = () => {
     carbon: t.navCarbon || 'Carbon & Biomass'
   };
 
+  const renderDashboard = (guest: boolean) => (
+    <div
+      className="sidebar-mesh"
+      style={{
+        display: 'flex',
+        width: '100vw',
+        overflow: 'hidden',
+        color: 'var(--foreground)',
+        position: 'relative'
+      }}
+    >
+      {/* CrimeRakshak Floating Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        locale={locale}
+        mobileOpen={mobileSidebarOpen}
+        setMobileOpen={setMobileSidebarOpen}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+        onLogout={handleExitGuestMode}
+      />
+
+      {/* CrimeRakshak Indented Canvas Area */}
+      <div
+        className={`app-canvas-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}
+      >
+        {/* CrimeRakshak Rounded Floating Canvas with Shadow */}
+        <div className="main-mesh app-canvas-panel">
+          {/* Subtle SVG Grid Matrix Overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 0,
+              backgroundImage: "url('/grid.svg')",
+              backgroundSize: '40px 40px',
+              opacity: theme === 'dark' ? 0.08 : 0.04
+            }}
+          />
+
+          <Header
+            activeTabTitle={tabTitles[activeTab]}
+            locale={locale}
+            onLocaleChange={handleLocaleChange}
+            isOnline={isOnline}
+            onToggleSidebar={() => setMobileSidebarOpen(prev => !prev)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            isGuestMode={guest}
+            onExitGuestMode={handleExitGuestMode}
+          />
+
+          {/* Main Scrollable View */}
+          <main className="main-scroll-view scrollbar-hide">
+            {/* Content Container */}
+            <div className="app-content-container">
+              <TabErrorBoundary>
+                <div style={{ display: activeTab === 'home' ? 'block' : 'none', height: '100%' }}>
+                  <HomeTab
+                    locale={locale}
+                    isOnline={isOnline}
+                    onNavigate={(tab) => setActiveTab(tab)}
+                    onSelectPlot={(p) => setSelectedPlot(p)}
+                    plots={plots}
+                    selectedPlot={selectedPlot}
+                    offlineQueueCount={offlineQueueCount}
+                    onSyncOfflineQueue={syncOfflineScans}
+                  />
+                </div>
+
+                <div style={{ display: activeTab === 'fields' ? 'block' : 'none', height: '100%' }}>
+                  <FieldsTab
+                    locale={locale}
+                    plots={plots}
+                    selectedPlot={selectedPlot}
+                    onSelectPlot={(p) => setSelectedPlot(p)}
+                    onPlotCreated={handlePlotCreated}
+                    onPlotDeleted={handlePlotDeleted}
+                    onOpenAskWithPlot={handleOpenAskWithPlot}
+                    isActive={activeTab === 'fields'}
+                  />
+                </div>
+
+                <div style={{ display: activeTab === 'scan' ? 'block' : 'none', height: '100%' }}>
+                  <ScanTab
+                    locale={locale}
+                    isOnline={isOnline}
+                    plots={plots}
+                    onScanCompleted={handleScanCompleted}
+                    onOpenAskWithScan={handleOpenAskWithScan}
+                  />
+                </div>
+
+                <div style={{ display: activeTab === 'ask' ? 'block' : 'none', height: '100%' }}>
+                  <AskTab
+                    locale={locale}
+                    activePlot={selectedPlot}
+                    latestScan={latestScan}
+                  />
+                </div>
+
+                <div style={{ display: activeTab === 'carbon' ? 'block' : 'none', height: '100%' }}>
+                  <CarbonTab
+                    locale={locale}
+                    plots={plots}
+                    selectedPlot={selectedPlot}
+                    onSelectPlot={(p) => setSelectedPlot(p)}
+                  />
+                </div>
+
+                <div style={{ display: activeTab === 'more' ? 'block' : 'none', height: '100%' }}>
+                  <MoreTab
+                    locale={locale}
+                    onLocaleChange={handleLocaleChange}
+                    theme={theme}
+                    onToggleTheme={toggleTheme}
+                  />
+                </div>
+              </TabErrorBoundary>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile Fixed Bottom Navigation */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        locale={locale}
+        onOpenSidebar={() => setMobileSidebarOpen(true)}
+      />
+
+      {/* Onboarding Wizard */}
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onComplete={handleCompleteOnboarding}
+      />
+    </div>
+  );
+
+  if (isGuestMode) {
+    return renderDashboard(true);
+  }
+
   return (
     <>
       <Show when="signed-out">
-        <div style={{
-          display: 'flex', 
-          flexDirection: 'column', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh', 
-          background: 'var(--background)',
-          color: 'var(--foreground)'
-        }}>
-          <h1 style={{ marginBottom: '2rem' }}>Welcome to AgriBridge</h1>
-          <SignInButton mode="modal">
-            <button style={{
-              padding: '0.8rem 2rem',
-              borderRadius: '0.5rem',
-              background: 'var(--brand-green)',
-              color: '#141f00',
-              fontWeight: 'bold',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '1.1rem'
-            }}>Sign In to Continue</button>
-          </SignInButton>
-        </div>
+        <LoginPage onGuestDemoLogin={handleGuestLogin} />
       </Show>
 
       <Show when="signed-in">
-        <div
-          className="sidebar-mesh"
-          style={{
-            display: 'flex',
-            width: '100vw',
-            overflow: 'hidden',
-            color: 'var(--foreground)',
-            position: 'relative'
-          }}
-        >
-          {/* CrimeRakshak Floating Sidebar */}
-          <Sidebar
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            locale={locale}
-            mobileOpen={mobileSidebarOpen}
-            setMobileOpen={setMobileSidebarOpen}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
-          />
-
-          {/* CrimeRakshak Indented Canvas Area */}
-          <div
-            className={`app-canvas-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}
-          >
-            {/* CrimeRakshak Rounded Floating Canvas with Shadow */}
-            <div className="main-mesh app-canvas-panel">
-              {/* Subtle SVG Grid Matrix Overlay */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  pointerEvents: 'none',
-                  zIndex: 0,
-                  backgroundImage: "url('/grid.svg')",
-                  backgroundSize: '40px 40px',
-                  opacity: theme === 'dark' ? 0.08 : 0.04
-                }}
-              />
-
-              <Header
-                activeTabTitle={tabTitles[activeTab]}
-                locale={locale}
-                onLocaleChange={handleLocaleChange}
-                isOnline={isOnline}
-                onToggleSidebar={() => setMobileSidebarOpen(prev => !prev)}
-                theme={theme}
-                onToggleTheme={toggleTheme}
-              />
-
-              {/* Main Scrollable View */}
-              <main className="main-scroll-view scrollbar-hide">
-                {/* Content Container */}
-                <div className="app-content-container">
-                  <TabErrorBoundary>
-                    <div style={{ display: activeTab === 'home' ? 'block' : 'none', height: '100%' }}>
-                      <HomeTab
-                        locale={locale}
-                        isOnline={isOnline}
-                        onNavigate={(tab) => setActiveTab(tab)}
-                        onSelectPlot={(p) => setSelectedPlot(p)}
-                        plots={plots}
-                        selectedPlot={selectedPlot}
-                        offlineQueueCount={offlineQueueCount}
-                        onSyncOfflineQueue={syncOfflineScans}
-                      />
-                    </div>
-
-                    <div style={{ display: activeTab === 'fields' ? 'block' : 'none', height: '100%' }}>
-                      <FieldsTab
-                        locale={locale}
-                        plots={plots}
-                        selectedPlot={selectedPlot}
-                        onSelectPlot={(p) => setSelectedPlot(p)}
-                        onPlotCreated={handlePlotCreated}
-                        onPlotDeleted={handlePlotDeleted}
-                        onOpenAskWithPlot={handleOpenAskWithPlot}
-                        isActive={activeTab === 'fields'}
-                      />
-                    </div>
-
-                    <div style={{ display: activeTab === 'scan' ? 'block' : 'none', height: '100%' }}>
-                      <ScanTab
-                        locale={locale}
-                        isOnline={isOnline}
-                        plots={plots}
-                        onScanCompleted={handleScanCompleted}
-                        onOpenAskWithScan={handleOpenAskWithScan}
-                      />
-                    </div>
-
-                    <div style={{ display: activeTab === 'ask' ? 'block' : 'none', height: '100%' }}>
-                      <AskTab
-                        locale={locale}
-                        activePlot={selectedPlot}
-                        latestScan={latestScan}
-                      />
-                    </div>
-
-                    <div style={{ display: activeTab === 'carbon' ? 'block' : 'none', height: '100%' }}>
-                      <CarbonTab
-                        locale={locale}
-                        plots={plots}
-                        selectedPlot={selectedPlot}
-                        onSelectPlot={(p) => setSelectedPlot(p)}
-                      />
-                    </div>
-
-                    <div style={{ display: activeTab === 'more' ? 'block' : 'none', height: '100%' }}>
-                      <MoreTab
-                        locale={locale}
-                        onLocaleChange={handleLocaleChange}
-                        theme={theme}
-                        onToggleTheme={toggleTheme}
-                      />
-                    </div>
-                  </TabErrorBoundary>
-                </div>
-              </main>
-            </div>
-          </div>
-
-          {/* Mobile Fixed Bottom Navigation */}
-          <MobileBottomNav
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            locale={locale}
-            onOpenSidebar={() => setMobileSidebarOpen(true)}
-          />
-
-          {/* Onboarding Wizard */}
-          <OnboardingModal
-            isOpen={showOnboarding}
-            onComplete={handleCompleteOnboarding}
-          />
-        </div>
+        {renderDashboard(false)}
       </Show>
     </>
   );

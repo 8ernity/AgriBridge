@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Cpu,
   Settings,
+  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   X,
@@ -17,6 +18,7 @@ import {
   Award,
   Leaf
 } from 'lucide-react';
+import { useClerk, useUser } from '@clerk/react';
 import { Locale, TRANSLATIONS } from '../services/i18n';
 
 interface NavSection {
@@ -37,6 +39,7 @@ interface SidebarProps {
   setMobileOpen: (open: boolean) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -46,9 +49,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   setMobileOpen,
   collapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  onLogout
 }) => {
   const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
+  const { signOut } = useClerk();
+  const { user } = useUser();
+
+  const displayName = user?.fullName || user?.firstName || (user?.primaryEmailAddress?.emailAddress ? user.primaryEmailAddress.emailAddress.split('@')[0] : 'Kisan Mitra');
+  const userAvatarUrl = user?.imageUrl;
+  const userInitials = (user?.firstName && user?.lastName)
+    ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+    : displayName.slice(0, 2).toUpperCase();
+
+  const handleLogout = async () => {
+    localStorage.removeItem('agribridge_guest_session');
+    try {
+      await signOut();
+    } catch (e) {
+      console.warn("Clerk signOut error:", e);
+    }
+    if (onLogout) {
+      onLogout();
+    }
+    window.location.reload();
+  };
 
   const navSections: NavSection[] = [
     {
@@ -324,67 +349,104 @@ export const Sidebar: React.FC<SidebarProps> = ({
             justifyContent: 'space-between',
             gap: 10
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <div style={{
-                height: 38,
-                width: 38,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--brand-purple) 0%, #7b2484 100%)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: '0.85rem',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
-                border: '2px solid var(--background)',
-                flexShrink: 0
-              }}>
-                KM
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+              {userAvatarUrl ? (
+                <img
+                  src={userAvatarUrl}
+                  alt={displayName}
+                  onClick={collapsed ? handleLogout : undefined}
+                  style={{
+                    height: 38,
+                    width: 38,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '2px solid var(--border)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                    flexShrink: 0,
+                    cursor: collapsed ? 'pointer' : 'default'
+                  }}
+                  title={collapsed ? (locale === 'hi' ? "लॉग आउट करें" : "Log Out") : undefined}
+                />
+              ) : (
+                <div
+                  onClick={collapsed ? handleLogout : undefined}
+                  style={{
+                    height: 38,
+                    width: 38,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--brand-purple) 0%, #7b2484 100%)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                    border: '2px solid var(--background)',
+                    flexShrink: 0,
+                    cursor: collapsed ? 'pointer' : 'default'
+                  }}
+                  title={collapsed ? (locale === 'hi' ? "लॉग आउट करें" : "Log Out") : undefined}
+                >
+                  {userInitials}
+                </div>
+              )}
               {!collapsed && (
                 <div style={{ minWidth: 0 }}>
                   <div style={{
-                    fontSize: '0.86rem',
+                    fontSize: '0.88rem',
                     fontWeight: 800,
                     color: 'var(--foreground)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis'
                   }}>
-                    Kisan Mitra
-                  </div>
-                  <div style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    color: 'var(--brand-green)'
-                  }}>
-                    Smallholder Lead
+                    {displayName}
                   </div>
                 </div>
               )}
             </div>
 
             {!collapsed && (
-              <button
-                onClick={() => setActiveTab('more')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--muted-foreground)',
-                  padding: 6,
-                  borderRadius: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title={t.settingsTitle}
-              >
-                <Settings size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  onClick={() => setActiveTab('more')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--muted-foreground)',
+                    padding: 6,
+                    borderRadius: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'color 0.2s ease'
+                  }}
+                  title={t.settingsTitle}
+                >
+                  <Settings size={18} />
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    cursor: 'pointer',
+                    color: '#f87171',
+                    padding: '6px 8px',
+                    borderRadius: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title={locale === 'hi' ? "लॉग आउट करें / बाहर निकलें" : "Log Out"}
+                >
+                  <LogOut size={17} />
+                </button>
+              </div>
             )}
           </div>
         </div>
