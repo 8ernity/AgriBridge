@@ -18,9 +18,8 @@ import {
   getOfflineScansCount
 } from './offlineStorage';
 
-export const API_BASE = (import.meta as any).env.VITE_API_BASE_URL 
-  ? `${(import.meta as any).env.VITE_API_BASE_URL}/api/v1` 
-  : '/api/v1';
+const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:8000';
+export const API_BASE = `${baseUrl.replace(/\/+$/, '')}/api/v1`;
 
 // Local storage keys for offline resilience (FR-4.8, FR-8.2)
 const STORAGE_PLOTS_KEY = 'agribridge_local_plots';
