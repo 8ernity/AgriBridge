@@ -21,12 +21,24 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Environment variables
+# Environment variables & secrets
 .env
 .env.*
-!.env.example
+.env.local
+.env.*.local
+*.env
+*.env.*
+frontend/.env
+frontend/.env.*
+frontend/.env.local
 backend/.env
 backend/.env.*
+*.pem
+*.key
+*.cert
+!.env.example
+!frontend/.env.example
+!backend/.env.example
 
 # Database files
 agribridge.db
