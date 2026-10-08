@@ -11,6 +11,8 @@ interface HeaderProps {
   onToggleSidebar: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  isGuestMode?: boolean;
+  onExitGuestMode?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,7 +22,9 @@ export const Header: React.FC<HeaderProps> = ({
   isOnline,
   onToggleSidebar,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  isGuestMode,
+  onExitGuestMode
 }) => {
   const [isAppModalOpen, setIsAppModalOpen] = useState(false);
   const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
@@ -177,7 +181,30 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div style={{ marginLeft: 8, display: 'flex', alignItems: 'center' }}>
-               <UserButton />
+              {isGuestMode ? (
+                <button
+                  onClick={onExitGuestMode}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    color: '#f87171',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '9999px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                  title="Exit Guest Mode"
+                >
+                  <span>Guest Demo</span> ✕
+                </button>
+              ) : (
+                <UserButton />
+              )}
             </div>
           </div>
         </div>
