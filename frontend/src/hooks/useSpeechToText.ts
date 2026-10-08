@@ -76,8 +76,15 @@ export const useSpeechToText = ({ onTranscriptChange, language = 'en-IN' }: { on
       try {
         recognitionRef.current.start();
         setIsListening(true);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Start error:', err);
+        if (err.name === 'NotAllowedError') {
+          setError('Microphone access denied.');
+        } else if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          setError('HTTPS required for audio.');
+        } else {
+          setError(err.message || 'Failed to start microphone.');
+        }
       }
     }
   }, [isListening]);
