@@ -188,7 +188,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
       const dotIcon = L.divIcon({
         className: 'sketch-dot-marker',
         html: `
-          <div style="width:14px; height:14px; border-radius:50%; background:#9acd32; border:2px solid #ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; color:#000; font-size:9px; font-weight:800;">
+          <div style="width:14px; height:14px; border-radius:50%; background:#065f46; border:2px solid #ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; color:#000; font-size:9px; font-weight:800;">
             ${idx + 1}
           </div>
         `,
@@ -213,16 +213,16 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
     // Draw connecting line or closed polygon
     if (drawnCoords.length >= 3) {
       L.polygon(drawnCoords as [number, number][], {
-        color: '#9acd32',
+        color: '#065f46',
         weight: 2.5,
-        fillColor: '#9acd32',
+        fillColor: '#065f46',
         fillOpacity: 0.35,
         dashArray: '4, 4',
         interactive: false
       }).addTo(sketchGroupRef.current!);
     } else if (drawnCoords.length === 2) {
       L.polyline(drawnCoords as [number, number][], {
-        color: '#9acd32',
+        color: '#065f46',
         weight: 2.5,
         dashArray: '4, 4',
         interactive: false
@@ -248,11 +248,11 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
         className: 'custom-plot-marker',
         html: `
           <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; transform:translate(-50%, -100%);">
-            <div style="background:${isSelected ? '#9acd32' : 'rgba(28, 30, 34, 0.95)'}; color:${isSelected ? '#141f00' : '#ffffff'}; font-size:11px; font-weight:800; padding:3px 9px; border-radius:8px; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,0.6); margin-bottom:4px; border:1.5px solid ${isSelected ? '#ffffff' : 'rgba(154, 205, 50, 0.4)'}; letter-spacing:-0.01em;">
+            <div style="background:${isSelected ? '#065f46' : 'rgba(28, 30, 34, 0.95)'}; color:${isSelected ? '#141f00' : '#ffffff'}; font-size:11px; font-weight:800; padding:3px 9px; border-radius:8px; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,0.6); margin-bottom:4px; border:1.5px solid ${isSelected ? '#ffffff' : 'rgba(6, 95, 70, 0.4)'}; letter-spacing:-0.01em;">
               ${p.name} (${pArea} ha)
             </div>
-            <div style="width:26px; height:26px; border-radius:50%; background:${isSelected ? '#9acd32' : '#252830'}; border:2.5px solid #ffffff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.7);">
-              <div style="width:9px; height:9px; border-radius:50%; background:${isSelected ? '#141f00' : '#9acd32'};"></div>
+            <div style="width:26px; height:26px; border-radius:50%; background:${isSelected ? '#065f46' : '#252830'}; border:2.5px solid #ffffff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.7);">
+              <div style="width:9px; height:9px; border-radius:50%; background:${isSelected ? '#141f00' : '#065f46'};"></div>
             </div>
           </div>
         `,
@@ -285,9 +285,9 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
       }
 
       L.polygon(parcelCoords, {
-        color: isSelected ? '#9acd32' : 'rgba(154, 205, 50, 0.5)',
+        color: isSelected ? '#065f46' : 'rgba(6, 95, 70, 0.5)',
         weight: isSelected ? 2.5 : 1.5,
-        fillColor: '#9acd32',
+        fillColor: '#065f46',
         fillOpacity: isSelected ? 0.32 : 0.12,
         dashArray: isSelected ? '' : '4, 4'
       }).addTo(markersGroupRef.current!).on('click', () => onSelectPlot(p));
@@ -509,7 +509,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 8,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.6)'
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--brand-green)', flexShrink: 0 }} />
@@ -610,7 +610,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
               gap: 5,
               borderRadius: 10,
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
             }}
             title="Locate Me (GPS)"
           >
@@ -637,7 +637,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
               gap: 5,
               borderRadius: 10,
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
             }}
           >
             <Layers size={15} color="var(--brand-green)" />
@@ -907,7 +907,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
               </div>
             </div>
 
-            <div style={{ background: 'rgba(154, 205, 50, 0.08)', border: '1px solid rgba(154, 205, 50, 0.2)', padding: 10, borderRadius: 8, fontSize: '0.78rem', color: 'var(--foreground)' }}>
+            <div style={{ background: 'rgba(6, 95, 70, 0.08)', border: '1px solid rgba(6, 95, 70, 0.2)', padding: 10, borderRadius: 8, fontSize: '0.78rem', color: 'var(--foreground)' }}>
               ⚠️ <strong>Resolution Notice:</strong> Estimated at 250m global grid resolution for topsoil ({soil.depth || '0-30cm'}). Recommended as baseline guidance prior to laboratory wet-chemistry testing.
             </div>
             {soil.is_fallback && <p role="status" style={{ color: 'var(--brand-amber)', fontWeight: 700 }}>DEMO DATA — these soil values are synthetic and are not a SoilGrids measurement.</p>}
@@ -1028,8 +1028,8 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
             </div>
 
             <div style={{
-              background: 'rgba(154, 205, 50, 0.1)',
-              border: '1px solid rgba(154, 205, 50, 0.25)',
+              background: 'rgba(6, 95, 70, 0.1)',
+              border: '1px solid rgba(6, 95, 70, 0.25)',
               borderRadius: 10,
               padding: 12,
               fontSize: '0.85rem',
@@ -1201,7 +1201,7 @@ export const FieldsTab: React.FC<FieldsTabProps> = ({
               </div>
 
               {drawnCoords.length > 0 && (
-                <div style={{ fontSize: '0.78rem', color: 'var(--brand-green)', background: 'rgba(154, 205, 50, 0.1)', border: '1px solid rgba(154, 205, 50, 0.3)', padding: 10, borderRadius: 8 }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--brand-green)', background: 'rgba(6, 95, 70, 0.1)', border: '1px solid rgba(6, 95, 70, 0.3)', padding: 10, borderRadius: 8 }}>
                   ✓ {drawnCoords.length} {locale === 'hi' ? 'जीपीएस सीमा बिंदु मानचित्र से सहेजे जाएंगे' : 'GPS boundary coordinates captured from map sketch'}
                 </div>
               )}
