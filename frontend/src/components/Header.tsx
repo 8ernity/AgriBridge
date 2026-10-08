@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, Smartphone, Shield, Wifi, WifiOff, X, QrCode, Globe, Check, Sun, Moon, Activity, Zap } from 'lucide-react';
+import { UserButton } from '@clerk/react';
 import { Locale, TRANSLATIONS } from '../services/i18n';
 
 interface HeaderProps {
@@ -173,6 +174,10 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <span>अ</span> HI
               </div>
+            </div>
+
+            <div style={{ marginLeft: 8, display: 'flex', alignItems: 'center' }}>
+               <UserButton />
             </div>
           </div>
         </div>
