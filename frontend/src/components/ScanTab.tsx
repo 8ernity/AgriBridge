@@ -539,9 +539,9 @@ export const ScanTab: React.FC<ScanTabProps> = ({
               borderRadius: 9999,
               fontSize: '0.78rem',
               fontWeight: 700,
-              background: scanResult.status === 'confident' ? 'rgba(154, 205, 50, 0.16)' : 'rgba(245, 158, 11, 0.16)',
+              background: scanResult.status === 'confident' ? 'rgba(6, 95, 70, 0.16)' : 'rgba(245, 158, 11, 0.16)',
               color: scanResult.status === 'confident' ? 'var(--status-confident)' : 'var(--status-uncertain)',
-              border: `1px solid ${scanResult.status === 'confident' ? 'rgba(154, 205, 50, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
+              border: `1px solid ${scanResult.status === 'confident' ? 'rgba(6, 95, 70, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
               maxWidth: '100%'
             }}>
               {scanResult.status === 'confident' ? <CheckCircle size={15} /> : <AlertTriangle size={15} />}
@@ -713,13 +713,13 @@ export const ScanTab: React.FC<ScanTabProps> = ({
             <div style={{
               position: 'absolute',
               top: 0, left: 0, right: 0, bottom: 0,
-              background: 'linear-gradient(90deg, rgba(154, 205, 50, 0.05) 0%, transparent 100%)',
+              background: 'linear-gradient(90deg, rgba(6, 95, 70, 0.05) 0%, transparent 100%)',
               pointerEvents: 'none'
             }} />
             
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
               <div style={{
-                background: 'rgba(154, 205, 50, 0.15)',
+                background: 'rgba(6, 95, 70, 0.15)',
                 borderRadius: 12,
                 width: 36,
                 height: 36,

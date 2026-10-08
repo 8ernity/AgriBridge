@@ -193,8 +193,8 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  background: 'rgba(154, 205, 50, 0.15)',
-                  border: '1px solid rgba(154, 205, 50, 0.4)',
+                  background: 'rgba(6, 95, 70, 0.15)',
+                  border: '1px solid rgba(6, 95, 70, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -210,10 +210,10 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   color: 'var(--brand-green)',
-                  background: 'rgba(154, 205, 50, 0.12)',
+                  background: 'rgba(6, 95, 70, 0.12)',
                   padding: '0.2rem 0.6rem',
                   borderRadius: '1rem',
-                  border: '1px solid rgba(154, 205, 50, 0.3)'
+                  border: '1px solid rgba(6, 95, 70, 0.3)'
                 }}
               >
                 Illustrative Carbon Estimate • Demo Data
@@ -438,7 +438,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                       borderRadius: '0.65rem',
                       fontSize: '0.75rem',
                       textAlign: 'center',
-                      background: tillagePractice === item.id ? 'rgba(154, 205, 50, 0.15)' : 'var(--muted)',
+                      background: tillagePractice === item.id ? 'rgba(6, 95, 70, 0.15)' : 'var(--muted)',
                       border: tillagePractice === item.id ? '1.5px solid var(--brand-green)' : '1px solid var(--border)',
                       color: tillagePractice === item.id ? 'var(--brand-green)' : 'var(--foreground)',
                       fontWeight: tillagePractice === item.id ? 700 : 500,
@@ -473,7 +473,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                       borderRadius: '0.65rem',
                       fontSize: '0.75rem',
                       textAlign: 'center',
-                      background: coverCrop === item.id ? 'rgba(154, 205, 50, 0.15)' : 'var(--muted)',
+                      background: coverCrop === item.id ? 'rgba(6, 95, 70, 0.15)' : 'var(--muted)',
                       border: coverCrop === item.id ? '1.5px solid var(--brand-green)' : '1px solid var(--border)',
                       color: coverCrop === item.id ? 'var(--brand-green)' : 'var(--foreground)',
                       fontWeight: coverCrop === item.id ? 700 : 500,
@@ -509,7 +509,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                       borderRadius: '0.65rem',
                       fontSize: '0.75rem',
                       textAlign: 'left',
-                      background: organicAmendment === item.id ? 'rgba(154, 205, 50, 0.15)' : 'var(--muted)',
+                      background: organicAmendment === item.id ? 'rgba(6, 95, 70, 0.15)' : 'var(--muted)',
                       border: organicAmendment === item.id ? '1.5px solid var(--brand-green)' : '1px solid var(--border)',
                       color: organicAmendment === item.id ? 'var(--brand-green)' : 'var(--foreground)',
                       fontWeight: organicAmendment === item.id ? 700 : 500,
@@ -535,8 +535,8 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                 justifyContent: 'space-between',
                 padding: '0.75rem 0.95rem',
                 borderRadius: '0.75rem',
-                background: agroforestryBorder ? 'rgba(154, 205, 50, 0.15)' : 'var(--muted)',
-                border: agroforestryBorder ? '1.5px solid rgba(154, 205, 50, 0.4)' : '1px solid var(--border)',
+                background: agroforestryBorder ? 'rgba(6, 95, 70, 0.15)' : 'var(--muted)',
+                border: agroforestryBorder ? '1.5px solid rgba(6, 95, 70, 0.4)' : '1px solid var(--border)',
                 cursor: 'pointer',
                 marginBottom: '1rem'
               }}
@@ -730,13 +730,13 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.35rem',
-                    background: 'rgba(154, 205, 50, 0.12)',
+                    background: 'rgba(6, 95, 70, 0.12)',
                     color: 'var(--brand-green)',
                     padding: '0.25rem 0.65rem',
                     borderRadius: '0.65rem',
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    border: '1px solid rgba(154, 205, 50, 0.3)'
+                    border: '1px solid rgba(6, 95, 70, 0.3)'
                   }}
                 >
                   <Award size={14} />
@@ -754,8 +754,8 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                 >
                   <defs>
                     <linearGradient id="carbonGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#9acd32" stopOpacity="0.35" />
-                      <stop offset="100%" stopColor="#9acd32" stopOpacity="0.0" />
+                      <stop offset="0%" stopColor="#065f46" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#065f46" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
 
@@ -794,7 +794,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                   <path
                     d={trajectoryChartData.pathD}
                     fill="none"
-                    stroke="#9acd32"
+                    stroke="#065f46"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -1046,7 +1046,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                       width: '40px',
                       height: '40px',
                       borderRadius: '50%',
-                      background: 'rgba(154, 205, 50, 0.15)',
+                      background: 'rgba(6, 95, 70, 0.15)',
                       border: '1.5px solid var(--brand-green)',
                       display: 'flex',
                       alignItems: 'center',
@@ -1076,7 +1076,7 @@ export const CarbonTab: React.FC<CarbonTabProps> = ({
                     fontSize: '0.75rem',
                     padding: '0.45rem 0.8rem',
                     borderRadius: '0.65rem',
-                    background: copiedHash ? 'rgba(154, 205, 50, 0.25)' : 'var(--muted)',
+                    background: copiedHash ? 'rgba(6, 95, 70, 0.25)' : 'var(--muted)',
                     border: '1px solid var(--border)',
                     color: copiedHash ? 'var(--brand-green)' : 'var(--foreground)',
                     cursor: 'pointer'

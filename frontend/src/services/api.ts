@@ -7,7 +7,8 @@ import {
   RecommendationData,
   AdvisoryMessage,
   CarbonCalculatorRequest,
-  CarbonCalculatorResponse
+  CarbonCalculatorResponse,
+  ChatSession
 } from '../types';
 import {
   saveOfflineScanBlob,
@@ -297,7 +298,37 @@ export const apiClient = {
     return response.json();
   },
 
-  // Advisory History
+  // Chat Sessions (Multi-session History)
+  getChatSessions(): ChatSession[] {
+    const raw = localStorage.getItem('agribridge_chat_sessions');
+    return raw ? JSON.parse(raw) : [];
+  },
+
+  saveChatSessions(sessions: ChatSession[]) {
+    localStorage.setItem('agribridge_chat_sessions', JSON.stringify(sessions));
+  },
+
+  getChatSession(sessionId: string): ChatSession | undefined {
+    return this.getChatSessions().find(s => s.id === sessionId);
+  },
+
+  saveChatSession(session: ChatSession) {
+    const sessions = this.getChatSessions();
+    const index = sessions.findIndex(s => s.id === session.id);
+    if (index >= 0) {
+      sessions[index] = session;
+    } else {
+      sessions.unshift(session);
+    }
+    this.saveChatSessions(sessions);
+  },
+
+  deleteChatSession(sessionId: string) {
+    const sessions = this.getChatSessions();
+    this.saveChatSessions(sessions.filter(s => s.id !== sessionId));
+  },
+
+  // Advisory History (Legacy / Active fallback)
   getAdvisoryHistory(): AdvisoryMessage[] {
     const raw = localStorage.getItem(STORAGE_ADVISORY_KEY);
     return raw ? JSON.parse(raw) : [];

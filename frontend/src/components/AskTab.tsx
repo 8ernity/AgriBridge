@@ -11,11 +11,15 @@ import {
   ExternalLink,
   Sparkles,
   RefreshCw,
+  History,
+  MessageSquare,
+  Trash2,
   X
 } from 'lucide-react';
 import { TRANSLATIONS, Locale } from '../services/i18n';
-import { AdvisoryMessage, Plot, ScanResult, SourceCitation } from '../types';
+import { AdvisoryMessage, Plot, ScanResult, SourceCitation, ChatSession } from '../types';
 import { apiClient, API_BASE } from '../services/api';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface AskTabProps {
   locale: Locale;
@@ -26,44 +30,149 @@ interface AskTabProps {
 export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }) => {
   const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
 
-  const [inputQuestion, setInputQuestion] = useState('');
+const [inputQuestion, setInputQuestion] = useState('');
+  const [interimText, setInterimText] = useState('');
   const [messages, setMessages] = useState<AdvisoryMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [activeCitationDrawer, setActiveCitationDrawer] = useState<SourceCitation | null>(null);
   const [feedbackSent, setFeedbackSent] = useState<Record<string, boolean>>({});
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
+  const lastScanIdRef = useRef<string | null>(null);
 
-  useEffect(() => () => {
-    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
-    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const getLocale = (lang: string) => {
+    if (lang === 'bn') return 'bn-IN';
+    if (lang === 'hi') return 'hi-IN';
+    return 'en-IN';
+  };
+
+  const handleTranscriptChange = (finalText: string, liveInterim: string) => {
+    if (finalText) {
+      setInputQuestion((prev) => prev + finalText);
+    }
+    setInterimText(liveInterim);
+  };
+
+  const { isListening, toggleListening, error: micError } = useSpeechToText({
+    onTranscriptChange: handleTranscriptChange,
+    language: getLocale(locale),
+  });
+
+useEffect(() => {
+    const loadedSessions = apiClient.getChatSessions();
+    setSessions(loadedSessions);
+
+    if (loadedSessions.length > 0 && !currentSessionId) {
+      setCurrentSessionId(loadedSessions[0].id);
+      setMessages(loadedSessions[0].messages);
+    } else if (loadedSessions.length === 0) {
+      createNewSession();
+    }
   }, []);
 
   useEffect(() => {
-    const history = apiClient.getAdvisoryHistory();
-    if (history.length > 0) {
-      setMessages(history);
-    } else {
-      // Welcome message in current language
-      const initialGreeting =
-        locale === 'hi'
-          ? "नमस्ते! मैं एग्रीब्रिज का प्रयोगात्मक कृषि सूचना सहायक हूँ। उत्तर उदाहरणात्मक हो सकते हैं और इनके स्रोत सत्यापित नहीं हैं।"
-          : locale === 'bn'
-          ? "নমস্কার! আমি এগ্রিব্রিজ ডিজিটাল কৃষি উপদেষ্টা। রোগ দমন, জৈব সার ও ফসল পর্যায়ক্রম সংক্রান্ত প্রশ্ন করতে পারেন।"
-          : "Hello! I am AgriBridge's experimental agricultural information assistant. Replies may use illustrative content with unverified sources; confirm advice with a local agricultural professional.";
+    // If a new scan arrives, create a new preloaded session
+    if (latestScan && latestScan.scan_id !== lastScanIdRef.current) {
+      lastScanIdRef.current = latestScan.scan_id;
+      
+      // Check if session for this scan already exists synchronously
+      const currentSessions = apiClient.getChatSessions();
+      const existing = currentSessions.find(s => s.scanId === latestScan.scan_id);
+      if (existing) {
+        setCurrentSessionId(existing.id);
+        setMessages(existing.messages);
+      } else {
+        const cropName = latestScan.crop || 'crop';
+        const diseaseName = latestScan.top_disease || 'an issue';
+        const initialGreeting =
+          locale === 'hi'
+            ? `नमस्ते! मैंने देखा कि आपने ${cropName} को स्कैन किया है जिसमें ${diseaseName} के लक्षण हैं। मैं इसके प्रबंधन में आपकी कैसे मदद कर सकता हूँ?`
+            : locale === 'bn'
+            ? `নমস্কার! আমি দেখেছি আপনি ${cropName} স্ক্যান করেছেন যাতে ${diseaseName} এর লক্ষণ আছে। আমি আপনাকে কীভাবে সাহায্য করতে পারি?`
+            : `Hello! I noticed you just scanned a ${cropName} showing signs of ${diseaseName}. How can I assist you with managing this issue?`;
 
-      const welcomeMsg: AdvisoryMessage = {
-        id: 'msg_welcome',
-        sender: 'assistant',
-        text: initialGreeting,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages([welcomeMsg]);
+        const welcomeMsg: AdvisoryMessage = {
+          id: `msg_welcome_${Date.now()}`,
+          sender: 'assistant',
+          text: initialGreeting,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        const newSession: ChatSession = {
+          id: `session_${Date.now()}`,
+          title: `${latestScan.crop || 'Crop'} - ${latestScan.top_disease}`,
+          updatedAt: new Date().toISOString(),
+          messages: [welcomeMsg],
+          scanId: latestScan.scan_id,
+          plotId: activePlot?.id
+        };
+        
+        apiClient.saveChatSession(newSession);
+        setSessions(apiClient.getChatSessions());
+        setCurrentSessionId(newSession.id);
+        setMessages(newSession.messages);
+      }
     }
-  }, [locale]);
+  }, [latestScan, locale, sessions]);
+
+  const createNewSession = () => {
+    const initialGreeting =
+        locale === 'hi'
+          ? "नमस्ते! मैं एग्रीब्रिज का प्रयोगात्मक कृषि सूचना सहायक हूँ। उत्तर उदाहरणात्मक हो सकते हैं।"
+          : locale === 'bn'
+          ? "নমস্কার! আমি এগ্রিব্রিজ ডিজিটাল কৃষি উপদেষ্টা। প্রশ্ন করতে পারেন।"
+          : "Hello! I am AgriBridge's experimental agricultural information assistant. Confirm advice with a local agricultural professional.";
+
+    const welcomeMsg: AdvisoryMessage = {
+      id: `msg_welcome_${Date.now()}`,
+      sender: 'assistant',
+      text: initialGreeting,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    const newSession: ChatSession = {
+      id: `session_${Date.now()}`,
+      title: 'New Chat',
+      updatedAt: new Date().toISOString(),
+      messages: [welcomeMsg]
+    };
+    
+    apiClient.saveChatSession(newSession);
+    setSessions(apiClient.getChatSessions());
+    setCurrentSessionId(newSession.id);
+    setMessages(newSession.messages);
+    setShowHistory(false);
+  };
+  
+  const selectSession = (id: string) => {
+    const session = sessions.find(s => s.id === id);
+    if (session) {
+      setCurrentSessionId(id);
+      setMessages(session.messages);
+      setShowHistory(false);
+    }
+  };
+
+  const confirmDeleteSession = () => {
+    if (!sessionToDelete) return;
+    apiClient.deleteChatSession(sessionToDelete.id);
+    const updatedSessions = apiClient.getChatSessions();
+    setSessions(updatedSessions);
+    if (currentSessionId === sessionToDelete.id) {
+      if (updatedSessions.length > 0) {
+        setCurrentSessionId(updatedSessions[0].id);
+        setMessages(updatedSessions[0].messages);
+      } else {
+        createNewSession();
+      }
+    }
+    setSessionToDelete(null);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -100,10 +209,14 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
 
     let accumulatedText = '';
 
+    const currentSession = sessions.find(s => s.id === currentSessionId);
+    const sessionScanId = currentSession?.scanId || latestScan?.scan_id;
+    const sessionPlotId = currentSession?.plotId || activePlot?.id;
+
     await apiClient.askAdvisoryStreaming(
       textToSend,
-      activePlot?.id,
-      latestScan?.scan_id,
+      sessionPlotId,
+      sessionScanId,
       locale,
       messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
       (tokenChunk) => {
@@ -129,7 +242,21 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
                 }
               : m
           );
-          apiClient.saveAdvisoryHistory(finalMessages);
+          
+          // Update current session
+          if (currentSessionId) {
+            const sess = apiClient.getChatSession(currentSessionId);
+            if (sess) {
+              sess.messages = finalMessages;
+              if (sess.title === 'New Chat' && userMsg.text) {
+                sess.title = userMsg.text.substring(0, 30) + '...';
+              }
+              sess.updatedAt = new Date().toISOString();
+              apiClient.saveChatSession(sess);
+              setSessions(apiClient.getChatSessions());
+            }
+          }
+    
           return finalMessages;
         });
       },
@@ -151,49 +278,7 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
     );
   };
 
-  const handleVoiceInput = async () => {
-    if (isListening) {
-      recorderRef.current?.stop();
-      return;
-    }
 
-    try {
-      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-        throw new Error('Local voice recording is not supported by this browser. You can type your question instead.');
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : undefined;
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      const chunks: BlobPart[] = [];
-      recorderRef.current = recorder;
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-      recorder.onerror = () => {
-        setIsListening(false);
-        stream.getTracks().forEach((track) => track.stop());
-        alert('Audio recording failed. Check microphone access and try again.');
-      };
-      recorder.onstop = async () => {
-        setIsListening(false);
-        stream.getTracks().forEach((track) => track.stop());
-        if (!chunks.length) return;
-        try {
-          const result = await apiClient.transcribeVoice(new Blob(chunks, { type: recorder.mimeType }), locale);
-          setInputQuestion(result.transcript);
-        } catch (error) {
-          alert(error instanceof Error ? error.message : 'Local Whisper transcription failed.');
-        }
-      };
-      recorder.start();
-      setIsListening(true);
-    } catch (err) {
-      setIsListening(false);
-      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-      alert(err instanceof Error ? err.message : 'Microphone access failed.');
-    }
-  };
 
   // Browser SpeechSynthesis Read-Aloud
   const handleReadAloud = (text: string) => {
@@ -217,21 +302,104 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
     }).catch(() => {});
   };
 
-  return (
+return (
     <div className="content-area animate-fade-in" style={{ 
       display: 'flex', 
-      flexDirection: 'column',
+      flexDirection: 'row',
       height: 'calc(100dvh - 140px)', // Fixed height for chat bot feel
+      overflow: 'hidden'
     }}>
-      {/* Title Header */}
-      <div style={{ flexShrink: 0 }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)', fontFamily: 'var(--font-heading)' }}>
-          {t.navAsk}: Localized RAG Advisory
-        </h2>
-        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
-          Source-Grounded • Multilingual • Extension-Aligned
-        </p>
+      {/* Left Sidebar (History) */}
+      <div style={{
+        width: showHistory ? '260px' : '0',
+        opacity: showHistory ? 1 : 0,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'hidden',
+        borderRight: showHistory ? '1px solid var(--border)' : 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        marginRight: showHistory ? '16px' : '0',
+        flexShrink: 0
+      }}>
+        <div style={{ minWidth: '240px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--foreground)' }}>Chat History</h3>
+          </div>
+          
+          <button className="btn-primary" onClick={createNewSession} style={{ marginBottom: 16, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <MessageSquare size={16} style={{ marginRight: 8 }} /> New Chat
+          </button>
+          
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: '4px' }}>
+            {sessions.map(s => (
+              <div 
+                key={s.id} 
+                onClick={() => selectSession(s.id)}
+                style={{ 
+                  padding: 12, 
+                  borderRadius: 12, 
+                  background: s.id === currentSessionId ? 'var(--brand-green)' : 'var(--card)',
+                  color: s.id === currentSessionId ? '#fff' : 'var(--foreground)',
+                  border: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, paddingRight: 8 }}>{s.title}</div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setSessionToDelete(s); }}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: s.id === currentSessionId ? 'rgba(255,255,255,0.7)' : 'var(--muted-foreground)', 
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                    title="Delete Chat"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+                <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                  {new Date(s.updatedAt).toLocaleDateString()} {new Date(s.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </div>
+              </div>
+            ))}
+            {sessions.length === 0 && <p style={{ color: 'var(--muted-foreground)', fontSize: '0.85rem', textAlign: 'center', marginTop: 20 }}>No previous chats.</p>}
+          </div>
+        </div>
       </div>
+
+      {/* Main Chat Content */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0
+      }}>
+{/* Title Header with History Toggle */}
+      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)', fontFamily: 'var(--font-heading)' }}>
+            {t.navAsk}: Localized RAG Advisory
+          </h2>
+          <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
+            Source-Grounded - Multilingual - Extension-Aligned
+          </p>
+        </div>
+        <button 
+          onClick={() => setShowHistory(prev => !prev)}
+          style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <History size={18} />
+          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>History</span>
+        </button>
+      </div>
+
+
 
       {/* Active Context Chips Bar (FR-5.1) */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, flexShrink: 0 }}>
@@ -412,8 +580,9 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
         borderTop: '1px solid var(--border)',
         marginTop: 'auto'
       }}>
+        {micError && <p style={{ position: 'absolute', transform: 'translateY(-30px)', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>{micError}</p>}
         <button
-          onClick={handleVoiceInput}
+          onClick={toggleListening}
           className="btn-secondary"
           style={{
             minHeight: 48,
@@ -424,7 +593,7 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
             borderColor: isListening ? '#ef4444' : 'var(--border)',
             flexShrink: 0
           }}
-          title="Local Whisper voice input"
+          title="Real-time voice input"
         >
           <Mic size={20} color={isListening ? '#ef4444' : 'var(--brand-green)'} className={isListening ? 'dot-pulse' : ''} />
         </button>
@@ -432,12 +601,12 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
         <input
           id="advisory-query-input"
           type="text"
-          value={inputQuestion}
+          value={inputQuestion + (interimText ? ` ${interimText}` : '')}
           onChange={(e) => setInputQuestion(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSendMessage(inputQuestion);
           }}
-          placeholder={isListening ? t.listening : t.askPlaceholder}
+          placeholder={isListening ? 'Listening... speak now...' : t.askPlaceholder}
           style={{
             flex: 1,
             padding: '13px 16px',
@@ -504,6 +673,37 @@ export const AskTab: React.FC<AskTabProps> = ({ locale, activePlot, latestScan }
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {sessionToDelete && (
+        <div className="modal-overlay" style={{ zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="bottom-sheet" style={{ maxWidth: 360, width: '90%', margin: '0 auto', textAlign: 'center', padding: '24px', animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Trash2 size={24} color="#ef4444" />
+            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: 8 }}>Delete Chat?</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--muted-foreground)', marginBottom: 24 }}>
+              Are you sure you want to delete "{sessionToDelete.title}"? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={() => setSessionToDelete(null)}
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--foreground)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteSession}
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
     </div>
   );
 };

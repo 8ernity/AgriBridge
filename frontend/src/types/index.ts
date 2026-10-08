@@ -153,6 +153,15 @@ export interface AdvisoryMessage {
   timestamp: string;
 }
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  updatedAt: string;
+  messages: AdvisoryMessage[];
+  scanId?: string;
+  plotId?: string;
+}
+
 export interface CountryConfig {
   country_code: string;
   country_name: string;
