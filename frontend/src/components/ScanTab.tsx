@@ -13,7 +13,10 @@ import {
   MessageSquare,
   Check,
   ChevronDown,
-  Download
+  Download,
+  Trash2,
+  History,
+  X
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { TRANSLATIONS, Locale } from '../services/i18n';
@@ -53,6 +56,28 @@ export const ScanTab: React.FC<ScanTabProps> = ({
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const imageLoadIdRef = useRef(0);
+
+  const [showHistory, setShowHistory] = useState(false);
+  const [scanHistory, setScanHistory] = useState<ScanResult[]>([]);
+  const [scanToDelete, setScanToDelete] = useState<ScanResult | null>(null);
+
+  useEffect(() => {
+    setScanHistory(apiClient.getScanHistory());
+  }, []);
+
+  const confirmDeleteScan = () => {
+    if (!scanToDelete) return;
+    const current = apiClient.getScanHistory();
+    const updated = current.filter(s => s.scan_id !== scanToDelete.scan_id);
+    localStorage.setItem('agribridge_local_scans', JSON.stringify(updated));
+    setScanHistory(updated);
+    if (scanResult && scanResult.scan_id === scanToDelete.scan_id) {
+      setScanResult(null);
+      setImagePreview(null);
+      setImageBlob(null);
+    }
+    setScanToDelete(null);
+  };
 
   // Initialize camera stream if supported
   const startCamera = async () => {
@@ -194,6 +219,7 @@ export const ScanTab: React.FC<ScanTabProps> = ({
       );
       result.local_image_url = imagePreview || undefined;
       setScanResult(result);
+      setScanHistory(apiClient.getScanHistory());
       onScanCompleted(result);
     } catch (err: any) {
       alert(`Diagnosis Error: ${err.message}`);
@@ -270,16 +296,102 @@ export const ScanTab: React.FC<ScanTabProps> = ({
   };
 
   return (
-    <div className="content-area animate-fade-in" style={{ paddingBottom: 110 }}>
-      {/* Title Header */}
-      <div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-          {t.navScan}: {locale === 'hi' ? 'एआई फसल रोग निदान' : locale === 'bn' ? 'এআই শস্য রোগ নির্ণয়' : false ? 'Utambuzi wa Magonjwa ya Mazao' : 'AI Crop Diagnosis'}
-        </h2>
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          {locale === 'hi' ? 'स्थानीय एआई जाँच: 387 फसलें समर्थित' : locale === 'bn' ? 'স্থানীয় এআই স্ক্যান: 387 টি ফসল সমর্থিত' : 'Local AI screening: 387 crops supported' }
-        </p>
+    <div className="content-area animate-fade-in" style={{ 
+      display: 'flex', 
+      flexDirection: 'row',
+      height: 'calc(100dvh - 140px)',
+      overflow: 'hidden'
+    }}>
+      {/* Left Sidebar (History) */}
+      <div style={{
+        width: showHistory ? '260px' : '0',
+        opacity: showHistory ? 1 : 0,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'hidden',
+        borderRight: showHistory ? '1px solid var(--surface-border)' : 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        marginRight: showHistory ? '16px' : '0',
+        flexShrink: 0
+      }}>
+        <div style={{ minWidth: '240px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Scan History</h3>
+          </div>
+          
+          <button className="btn-primary" onClick={() => { setScanResult(null); setImagePreview(null); setImageBlob(null); setShowHistory(false); }} style={{ marginBottom: 16, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Camera size={16} style={{ marginRight: 8 }} /> New Scan
+          </button>
+          
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: '4px' }}>
+            {scanHistory.map(s => (
+              <div 
+                key={s.scan_id} 
+                onClick={() => {
+                  setScanResult(s);
+                  if (s.local_image_url) setImagePreview(s.local_image_url);
+                  setShowHistory(false);
+                }}
+                style={{ 
+                  padding: 12, 
+                  borderRadius: 12, 
+                  background: scanResult?.scan_id === s.scan_id ? 'var(--brand-green)' : 'var(--surface-card)',
+                  color: scanResult?.scan_id === s.scan_id ? '#fff' : 'var(--text-primary)',
+                  border: '1px solid var(--surface-border)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, paddingRight: 8 }}>
+                    {s.crop} - {s.top_disease}
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setScanToDelete(s); }}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: scanResult?.scan_id === s.scan_id ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', 
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                    title="Delete Scan"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+                <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                  {new Date(s.created_at || Date.now()).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+            {scanHistory.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: 20 }}>No previous scans.</p>}
+          </div>
+        </div>
       </div>
+
+      {/* Main Content */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 110, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Title Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+              {t.navScan}: {locale === 'hi' ? 'एआई फसल रोग निदान' : locale === 'bn' ? 'এআই শস্য রোগ নির্ণয়' : 'AI Crop Diagnosis'}
+            </h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {locale === 'hi' ? 'स्थानीय एआई जाँच: 387 फसलें समर्थित' : locale === 'bn' ? 'স্থানীয় এআই স্ক্যান: 387 টি ফসল সমর্থিত' : 'Local AI screening: 387 crops supported' }
+            </p>
+          </div>
+          <button 
+            onClick={() => setShowHistory(prev => !prev)}
+            style={{ background: 'var(--surface-card)', border: '1px solid var(--surface-border)', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <History size={18} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>History</span>
+          </button>
+        </div>
 
       {/* Target Crop Selector */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
@@ -891,6 +1003,37 @@ export const ScanTab: React.FC<ScanTabProps> = ({
           </section>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {scanToDelete && (
+        <div className="modal-overlay" style={{ zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="bottom-sheet" style={{ maxWidth: 360, width: '90%', margin: '0 auto', textAlign: 'center', padding: '24px', animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Trash2 size={24} color="#ef4444" />
+            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Delete Scan?</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 24 }}>
+              Are you sure you want to delete this scan for "{scanToDelete.crop} - {scanToDelete.top_disease}"? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={() => setScanToDelete(null)}
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteScan}
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
     </div>
   );
 };
