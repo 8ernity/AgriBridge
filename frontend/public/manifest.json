@@ -1,0 +1,22 @@
+{
+  "short_name": "AgriBridge",
+  "name": "AgriBridge: Smallholder Farmer Intelligence",
+  "description": "Digital Public Good AI Crop Diagnosis, Weather, Soil Analytics and Localized Advisories",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#064E3B",
+  "theme_color": "#064E3B",
+  "display": "standalone",
+  "orientation": "portrait"
+}

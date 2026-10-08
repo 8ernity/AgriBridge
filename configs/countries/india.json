@@ -1,0 +1,153 @@
+{
+  "country_code": "IN",
+  "country_name": "India",
+  "default_locale": "hi",
+  "supported_languages": [
+    {
+      "code": "en",
+      "name": "English",
+      "local_name": "English"
+    },
+    {
+      "code": "hi",
+      "name": "Hindi",
+      "local_name": "हिन्दी"
+    },
+    {
+      "code": "bn",
+      "name": "Bengali",
+      "local_name": "বাংলা"
+    }
+  ],
+  "default_coordinates": {
+    "lat": 20.5937,
+    "lon": 78.9629,
+    "zoom": 5
+  },
+  "default_plots": [
+    {
+      "name": "Varanasi Vegetable Plot",
+      "crop": "tomato",
+      "sowing_date": "2026-08-15",
+      "lat": 25.3176,
+      "lon": 82.9739,
+      "area_ha": 0.45
+    },
+    {
+      "name": "Nashik Onion & Pepper Farm",
+      "crop": "bell_pepper",
+      "sowing_date": "2026-07-20",
+      "lat": 19.9975,
+      "lon": 73.7898,
+      "area_ha": 0.8
+    }
+  ],
+  "environmental_adapters": {
+    "weather": "open_meteo",
+    "soil": "soilgrids",
+    "satellite": "earth_search"
+  },
+  "crops": [
+    {
+      "id": "tomato",
+      "name": "Tomato",
+      "local_names": {
+        "hi": "टमाटर",
+        "bn": "টমেটো"
+      },
+      "family": "Solanaceae",
+      "suitable_ph": { "min": 5.5, "opt_min": 6.0, "opt_max": 7.0, "max": 7.8 },
+      "suitable_temp_c": { "min": 15, "opt_min": 20, "opt_max": 28, "max": 35 },
+      "suitable_30d_rain_mm": { "min": 30, "opt_min": 60, "opt_max": 140, "max": 250 },
+      "preferred_textures": ["loam", "sandy_loam", "clay_loam"],
+      "nitrogen_demand": "high",
+      "is_legume_or_cover": false,
+      "description": "High value staple vegetable, sensitive to waterlogging and severe heat."
+    },
+    {
+      "id": "potato",
+      "name": "Potato",
+      "local_names": {
+        "hi": "आलू",
+        "bn": "আলু"
+      },
+      "family": "Solanaceae",
+      "suitable_ph": { "min": 5.0, "opt_min": 5.5, "opt_max": 6.8, "max": 7.5 },
+      "suitable_temp_c": { "min": 10, "opt_min": 16, "opt_max": 22, "max": 28 },
+      "suitable_30d_rain_mm": { "min": 25, "opt_min": 50, "opt_max": 120, "max": 200 },
+      "preferred_textures": ["sandy_loam", "loam"],
+      "nitrogen_demand": "high",
+      "is_legume_or_cover": false,
+      "description": "Cool-season tuber crop requiring well-drained, loose aerated soil."
+    },
+    {
+      "id": "maize",
+      "name": "Maize (Corn)",
+      "local_names": {
+        "hi": "मक्का",
+        "bn": "ভুট্টা"
+      },
+      "family": "Poaceae",
+      "suitable_ph": { "min": 5.5, "opt_min": 6.0, "opt_max": 7.2, "max": 8.0 },
+      "suitable_temp_c": { "min": 18, "opt_min": 22, "opt_max": 30, "max": 38 },
+      "suitable_30d_rain_mm": { "min": 40, "opt_min": 75, "opt_max": 180, "max": 350 },
+      "preferred_textures": ["loam", "silt_loam", "clay_loam"],
+      "nitrogen_demand": "high",
+      "is_legume_or_cover": false,
+      "description": "Hardy grain and fodder crop, excellent rotation anchor after legumes."
+    },
+    {
+      "id": "bell_pepper",
+      "name": "Bell Pepper / Capsicum",
+      "local_names": {
+        "hi": "शिमला मिर्च",
+        "bn": "ক্যাপসিকাম"
+      },
+      "family": "Solanaceae",
+      "suitable_ph": { "min": 5.8, "opt_min": 6.2, "opt_max": 7.0, "max": 7.8 },
+      "suitable_temp_c": { "min": 16, "opt_min": 21, "opt_max": 28, "max": 34 },
+      "suitable_30d_rain_mm": { "min": 35, "opt_min": 70, "opt_max": 150, "max": 260 },
+      "preferred_textures": ["loam", "sandy_loam"],
+      "nitrogen_demand": "medium",
+      "is_legume_or_cover": false,
+      "description": "Warm-season crop vulnerable to standing water and fungal wilts."
+    },
+    {
+      "id": "chickpea",
+      "name": "Chickpea (Gram)",
+      "local_names": {
+        "hi": "चना",
+        "bn": "ছোলা"
+      },
+      "family": "Fabaceae",
+      "suitable_ph": { "min": 6.0, "opt_min": 6.5, "opt_max": 7.8, "max": 8.5 },
+      "suitable_temp_c": { "min": 12, "opt_min": 18, "opt_max": 26, "max": 32 },
+      "suitable_30d_rain_mm": { "min": 15, "opt_min": 30, "opt_max": 70, "max": 140 },
+      "preferred_textures": ["sandy_loam", "loam", "clay_loam"],
+      "nitrogen_demand": "low",
+      "is_legume_or_cover": true,
+      "description": "Symbiotic nitrogen-fixing legume, restores depleted soils after heavy feeders."
+    },
+    {
+      "id": "green_gram",
+      "name": "Mung Bean (Green Gram)",
+      "local_names": {
+        "hi": "मूँग दाल",
+        "bn": "মুগ ডাল"
+      },
+      "family": "Fabaceae",
+      "suitable_ph": { "min": 5.8, "opt_min": 6.3, "opt_max": 7.5, "max": 8.0 },
+      "suitable_temp_c": { "min": 20, "opt_min": 25, "opt_max": 33, "max": 40 },
+      "suitable_30d_rain_mm": { "min": 20, "opt_min": 40, "opt_max": 90, "max": 180 },
+      "preferred_textures": ["loam", "sandy_loam"],
+      "nitrogen_demand": "low",
+      "is_legume_or_cover": true,
+      "description": "Short-duration (60-70 days) cover crop building organic carbon and soil health."
+    }
+  ],
+  "extension_service": {
+    "agency": "ICAR - Krishi Vigyan Kendra (KVK)",
+    "kisan_toll_free": "1800-180-1551",
+    "portal_url": "https://kvk.icar.gov.in"
+  }
+}

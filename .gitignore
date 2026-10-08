@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+backend/venv/
+*.egg-info/
+.tox/
+.coverage
+htmlcov/
+
+# Node.js / Frontend
+node_modules/
+dist/
+.build-check-run/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables & secrets
+.env
+.env.*
+.env.local
+.env.*.local
+*.env
+*.env.*
+frontend/.env
+frontend/.env.*
+frontend/.env.local
+backend/.env
+backend/.env.*
+*.pem
+*.key
+*.cert
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+# Database files
+agribridge.db
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# ML Models (large files)
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pkl
+*.joblib
+models/hf_cache/
+models/india-dinov2/*.onnx
+models/plantvillage-mobilenetv3/*.onnx
+
+# Compiled binaries
+*.dll
+*.wasm
+*.so
+*.dylib
+
+# Logs
+*.log
+logs/
+scratch/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp

@@ -1,0 +1,19 @@
+{
+  "id": "voice-whisper-small-v1",
+  "name": "Whisper Small multilingual speech transcription",
+  "task": "speech_recognition",
+  "version": "1.0.0",
+  "license": "MIT (Whisper code and weights; Systran CTranslate2 conversion repository also declares MIT)",
+  "license_url": "https://github.com/openai/whisper/blob/main/LICENSE",
+  "model_source": "Systran/faster-whisper-small, converted from openai/whisper-small",
+  "model_source_url": "https://huggingface.co/Systran/faster-whisper-small",
+  "availability_status": "downloaded_on_first_use",
+  "inference_mode": "local CPU inference using faster-whisper with int8 compute; audio is not sent to a transcription API",
+  "languages_supported": ["multilingual; English, Hindi and Bengali hints are supported"],
+  "limits_and_biases": [
+    "Accuracy varies with accent, noise, microphone quality, and domain vocabulary.",
+    "The model is downloaded from Hugging Face on first transcription and requires network access once.",
+    "Uploaded audio is held temporarily on the backend for decoding and deleted after the request."
+  ],
+  "intended_use": "Local transcription of user-recorded farmer questions; users should review the transcript before submitting it."
+}

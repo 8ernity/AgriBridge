@@ -1,0 +1,21 @@
+{
+  "id": "rag-embedding-bge-small-en-v1-5-v1",
+  "name": "BGE-small-en-v1.5 English Embedder",
+  "task": "sentence_similarity_and_retrieval",
+  "version": "1.0.0",
+  "license": "BAAI base model MIT; Qdrant/FastEmbed runtime ONNX artifact Apache-2.0",
+  "license_url": "https://huggingface.co/BAAI/bge-small-en-v1.5",
+  "model_source": "BAAI/bge-small-en-v1.5 (base model); FastEmbed resolves its ONNX runtime artifact from Qdrant/bge-small-en-v1.5-onnx-Q",
+  "runtime_artifact_license": "Apache-2.0 (Qdrant ONNX export repository metadata)",
+  "runtime_artifact_url": "https://huggingface.co/Qdrant/bge-small-en-v1.5-onnx-Q",
+  "availability_status": "downloaded_on_first_use",
+  "inference_mode": "local ONNX inference via FastEmbed; no embedding API call",
+  "architecture": "Dense Bi-Encoder Transformer",
+  "dimensions": 384,
+  "languages_supported": ["en"],
+  "corpus_indexed": ["A small bundled AgriBridge demonstration corpus"],
+  "limits_and_biases": [
+    "English-only model; Hindi and Bengali questions use keyword matching when dense embedding results are not suitable. No retrieval benchmark has been published."
+  ],
+  "intended_use": "English dense retrieval over the bundled demonstration passages."
+}
