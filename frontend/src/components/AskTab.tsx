@@ -63,62 +63,24 @@ const [inputQuestion, setInputQuestion] = useState('');
     language: getLocale(locale),
   });
 
-useEffect(() => {
+  useEffect(() => {
     const loadedSessions = apiClient.getChatSessions();
     setSessions(loadedSessions);
 
-    if (loadedSessions.length > 0 && !currentSessionId) {
-      setCurrentSessionId(loadedSessions[0].id);
-      setMessages(loadedSessions[0].messages);
-    } else if (loadedSessions.length === 0) {
-      createNewSession();
-    }
-  }, []);
-
-  useEffect(() => {
-    // If a new scan arrives, create a new preloaded session
-    if (latestScan && latestScan.scan_id !== lastScanIdRef.current) {
-      lastScanIdRef.current = latestScan.scan_id;
-      
-      // Check if session for this scan already exists synchronously
-      const currentSessions = apiClient.getChatSessions();
-      const existing = currentSessions.find(s => s.scanId === latestScan.scan_id);
-      if (existing) {
-        setCurrentSessionId(existing.id);
-        setMessages(existing.messages);
+    if (!currentSessionId) {
+      if (loadedSessions.length > 0) {
+        const mostRecent = loadedSessions[0];
+        if (mostRecent.messages.length <= 1) {
+          setCurrentSessionId(mostRecent.id);
+          setMessages(mostRecent.messages);
+        } else {
+          createNewSession();
+        }
       } else {
-        const cropName = latestScan.crop || 'crop';
-        const diseaseName = latestScan.top_disease || 'an issue';
-        const initialGreeting =
-          locale === 'hi'
-            ? `नमस्ते! मैंने देखा कि आपने ${cropName} को स्कैन किया है जिसमें ${diseaseName} के लक्षण हैं। मैं इसके प्रबंधन में आपकी कैसे मदद कर सकता हूँ?`
-            : locale === 'bn'
-            ? `নমস্কার! আমি দেখেছি আপনি ${cropName} স্ক্যান করেছেন যাতে ${diseaseName} এর লক্ষণ আছে। আমি আপনাকে কীভাবে সাহায্য করতে পারি?`
-            : `Hello! I noticed you just scanned a ${cropName} showing signs of ${diseaseName}. How can I assist you with managing this issue?`;
-
-        const welcomeMsg: AdvisoryMessage = {
-          id: `msg_welcome_${Date.now()}`,
-          sender: 'assistant',
-          text: initialGreeting,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        
-        const newSession: ChatSession = {
-          id: `session_${Date.now()}`,
-          title: `${latestScan.crop || 'Crop'} - ${latestScan.top_disease}`,
-          updatedAt: new Date().toISOString(),
-          messages: [welcomeMsg],
-          scanId: latestScan.scan_id,
-          plotId: activePlot?.id
-        };
-        
-        apiClient.saveChatSession(newSession);
-        setSessions(apiClient.getChatSessions());
-        setCurrentSessionId(newSession.id);
-        setMessages(newSession.messages);
+        createNewSession();
       }
     }
-  }, [latestScan, locale, sessions]);
+  }, []);
 
   const createNewSession = () => {
     const initialGreeting =
@@ -250,6 +212,8 @@ useEffect(() => {
               sess.messages = finalMessages;
               if (sess.title === 'New Chat' && userMsg.text) {
                 sess.title = userMsg.text.substring(0, 30) + '...';
+                sess.scanId = sessionScanId;
+                sess.plotId = sessionPlotId;
               }
               sess.updatedAt = new Date().toISOString();
               apiClient.saveChatSession(sess);
